@@ -16,14 +16,8 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          echo "=== Prisma CLI version ==="
-          node_modules/.bin/prisma --version
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "PRISMA GENERATE FAILED"
-            exit 1
-          }
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -50,14 +44,8 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          echo "=== Prisma CLI version ==="
-          node_modules/.bin/prisma --version
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "PRISMA GENERATE FAILED"
-            exit 1
-          }
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate
       - run: node_modules/.bin/prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -78,12 +66,6 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          echo "=== Prisma CLI version ==="
-          node_modules/.bin/prisma --version
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "PRISMA GENERATE FAILED"
-            exit 1
-          }
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate
       - run: npm run build
