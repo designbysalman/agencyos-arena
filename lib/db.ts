@@ -1,6 +1,8 @@
 'use server';
 
-import { PrismaClient } from '@prisma/client';
+import * as PrismaModule from '@prisma/client';
+
+type PrismaClient = InstanceType<typeof PrismaModule.PrismaClient>;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -8,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  new PrismaModule.PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
   });
 
