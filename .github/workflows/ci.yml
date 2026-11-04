@@ -16,8 +16,9 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
-      - run: npx prisma generate
+      - run: ls -la prisma/schema.prisma
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate --debug
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
@@ -47,12 +48,13 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
-      - run: npx prisma generate
+      - run: ls -la prisma/schema.prisma
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate --debug
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
-      - run: npx prisma migrate deploy
+      - run: node_modules/.bin/prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
       - run: npm test
@@ -72,8 +74,9 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
-      - run: npx prisma generate
+      - run: ls -la prisma/schema.prisma
+      - run: node_modules/.bin/prisma --version
+      - run: node_modules/.bin/prisma generate --debug
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
