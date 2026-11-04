@@ -16,9 +16,15 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma validate
+      - run: node_modules/.bin/prisma validate 2>&1 | tee prisma-validate.log || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-validate-lint-log
+          path: prisma-validate.log
       - run: node_modules/.bin/prisma generate
         env:
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
       - run: npm run lint
       - run: npx tsc --noEmit
@@ -46,7 +52,12 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma validate
+      - run: node_modules/.bin/prisma validate 2>&1 | tee prisma-validate.log || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-validate-test-log
+          path: prisma-validate.log
       - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -73,5 +84,6 @@ jobs:
       - run: npm ci
       - run: node_modules/.bin/prisma generate
         env:
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
       - run: npm run build
