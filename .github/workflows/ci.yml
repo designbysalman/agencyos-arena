@@ -16,6 +16,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
       - run: npx prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -46,6 +47,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
       - run: npx prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -70,6 +72,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      - run: curl -sI https://binaries.prisma.sh/ | head -5 || echo "PRISMA SH UNREACHABLE"
       - run: npx prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
