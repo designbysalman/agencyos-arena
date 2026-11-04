@@ -15,7 +15,8 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
+      - run: npx prisma generate
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -41,9 +42,9 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx prisma generate
-      - run: npx prisma db push
+      - run: npx prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
       - run: npm test
@@ -62,6 +63,6 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx prisma generate
       - run: npm run build

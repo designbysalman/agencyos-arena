@@ -1,15 +1,16 @@
 /**
  * AgencyOS middleware (ADR-0004).
  *
- * Phase 0: Lightweight session gating for protected routes.
- * Full database-backed authorization happens in API route handlers and
- * service layer (see lib/permissions.ts). The middleware only checks for
- * an active Better Auth session cookie; it does not import Prisma or
- * the auth library, so it works without prisma generate.
+ * Phase 0: Server-side session validation for protected routes.
+ * Validates the Better Auth session token on every request to protected
+ * paths. Unauthorized users cannot access protected resources even if they
+ * manually craft a fake cookie - the session is verified against Better Auth.
  *
- * Authorization is server-side only; the frontend never enforces authorization.
+ * Authorization (role-based, resource-level) is enforced in API route
+ * handlers and the service layer (see lib/permissions.ts).
  */
 
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -35,19 +36,44 @@ export async function middleware(request: Request) {
     return NextResponse.next();
   }
 
-  // Check for Better Auth session cookie
+  // Validate session via Better Auth - reads the encrypted session cookie
+  // and verifies it against the server-side session store.
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('better-auth.session');
 
-  // No session -> redirect to login for protected app routes
   if (!sessionCookie) {
+    // No session cookie -> redirect to login for protected app routes
     if (PROTECTED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Verify the session token is valid by calling Better Auth's session API
+  try {
+    const session = await auth.api.getSession({
+      headers: {
+        cookie: cookieStore.toString(),
+      },
+    });
+
+    if (!session) {
+      // Session cookie exists but is invalid/expired -> redirect to login
+      if (PROTECTED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      return NextResponse.next();
+    }
+
+    // Valid session -> allow request
+    return NextResponse.next();
+  } catch {
+    // Session validation failed -> redirect to login for protected routes
+    if (PROTECTED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
+  }
 }
 
 export const config = {

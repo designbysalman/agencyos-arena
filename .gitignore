@@ -38,6 +38,7 @@ yarn-error.log*
 /storage
 
 # Prisma generated client (run `npx prisma generate` locally)
+# NOTE: .prisma/client/ is gitignored. `npx prisma generate` creates it in CI.
 .prisma/
 
 # vercel

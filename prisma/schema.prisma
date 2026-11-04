@@ -21,16 +21,15 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // AgencyOS extensions (via Better Auth additionalFields)
+  // AgencyOS extensions
   organizationId String?
   role           String    @default("employee")
-  status         String    @default("active") // active, suspended, invited
+  status         String    @default("active")
   mfaEnabled     Boolean   @default(false)
   mfaSecret      String?
   lastLoginAt    DateTime?
 
-  // Relations
-  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   userRoles      UserRole[]
   sessions       Session[]
   accounts       Account[]
@@ -103,7 +102,7 @@ model Organization {
 
   users          User[]
   contacts       Contact[]
-  accounts       Account[]
+  organizations  OrganizationAccount[]
   leads          Lead[]
   opportunities  Opportunity[]
   pipelines      Pipeline[]
@@ -125,6 +124,34 @@ model Organization {
   customFields   CustomField[]
   featureFlags   FeatureFlag[]
   fileAssets     FileAsset[]
+}
+
+model OrganizationAccount {
+  id             String   @id @default(cuid())
+  organizationId String
+  accountId      String
+  createdAt      DateTime @default(now())
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account        AgencyAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, accountId])
+}
+
+model AgencyAccount {
+  id          String   @id @default(cuid())
+  organizationId String
+  name        String
+  website     String?
+  address     String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contacts       Contact[]
+  organizations  OrganizationAccount[]
+  opportunities  Opportunity[]
 }
 
 model Role {
@@ -217,8 +244,8 @@ model CustomFieldValue {
   customFieldId String
   entityId     String
   value        Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   customField  CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
 
@@ -288,29 +315,13 @@ model Contact {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  account       Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account       AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountContacts AccountContact[]
   leads         Lead[]
   opportunities Opportunity[]
-  creator       Contact?      @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater       Contact?      @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
-}
-
-model Account {
-  id          String   @id @default(cuid())
-  organizationId String
-  name        String
-  website     String?
-  address     String?
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contacts       Contact[]
-  accountContacts AccountContact[]
-  opportunities  Opportunity[]
+  creator       Contact?       @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater       Contact?       @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
 
 model AccountContact {
@@ -320,8 +331,8 @@ model AccountContact {
   roleInAccount String?
   createdAt    DateTime @default(now())
 
-  account      Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  contact      Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  account      AgencyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contact      Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([accountId, contactId])
 }
@@ -343,7 +354,7 @@ model Lead {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   contact     Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  account     Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  account     AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   pipeline    Pipeline?  @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
 }
@@ -394,11 +405,11 @@ model Opportunity {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contact       Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  account       Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  lead          Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  pipeline      Pipeline?     @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact       Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  account       AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  lead          Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  pipeline      Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   stage         PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
 }
 
@@ -411,7 +422,7 @@ model Invoice {
   organizationId String
   number        String
   clientId      String
-  status        String   @default("draft") // draft, sent, paid, overdue, void
+  status        String   @default("draft")
   subtotal      Decimal  @default(0)
   tax           Decimal  @default(0)
   total         Decimal  @default(0)
@@ -612,7 +623,7 @@ model WorkflowRule {
   id          String   @id @default(cuid())
   organizationId String
   name        String
-  trigger     String   // e.g. "invoice.overdue"
+  trigger     String
   conditions  Json     @default("{}")
   actions     Json     @default("{}")
   enabled     Boolean  @default(true)
@@ -639,8 +650,8 @@ model Notification {
   id          String   @id @default(cuid())
   organizationId String
   userId      String
-  type        String   // info, warning, error, success
-  channel     String   // in_app, email
+  type        String
+  channel     String
   read        Boolean  @default(false)
   payload     Json?
   sentAt      DateTime?
@@ -656,7 +667,7 @@ model Proposal {
   opportunityId String?
   contactId   String?
   title       String
-  status      String   @default("draft") // draft, sent, accepted, rejected, expired
+  status      String   @default("draft")
   total       Decimal  @default(0)
   currency    String   @default("USD")
   createdAt   DateTime @default(now())
