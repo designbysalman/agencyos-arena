@@ -16,13 +16,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma --version
-      - run: |
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "=== PRISMA GENERATE EXIT CODE: $? ==="
-            exit 1
-          }
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
@@ -52,13 +46,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma --version
-      - run: |
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "=== PRISMA GENERATE EXIT CODE: $? ==="
-            exit 1
-          }
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
@@ -82,13 +70,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma --version
-      - run: |
-          echo "=== Running prisma generate ==="
-          node_modules/.bin/prisma generate 2>&1 || {
-            echo "=== PRISMA GENERATE EXIT CODE: $? ==="
-            exit 1
-          }
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
