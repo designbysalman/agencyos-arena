@@ -320,8 +320,8 @@ model Contact {
   accountContacts AccountContact[]
   leads         Lead[]
   opportunities Opportunity[]
-  creator       Contact?       @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater       Contact?       @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
+  creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
 
 model AccountContact {
