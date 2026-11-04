@@ -17,9 +17,9 @@
 - Clear module boundaries that can later be extracted into services if justified
 - Easier refactoring and consistency (one type system, one ORM, one auth layer)
 
-**Deployment target (Phase 0):** Single VPS (e.g., Hetzner CX11, ~€5/month) running Docker Compose (Next.js server + PostgreSQL + pg-boss), fronted by Cloudflare Tunnel for secure remote access and Cloudflare free tier for DNS/CDN. Daily `pg_dump` backups to Cloudflare R2. Custom domain added via Cloudflare DNS when needed. Estimated monthly cost: ~€5–8.
+**Deployment target (Phase 0):** Local Docker Compose (Next.js server + PostgreSQL + pg-boss). No cloud resources are provisioned in Phase 0. Deployment architecture is portable (Docker Compose + PostgreSQL + S3-compatible storage) and can target a self-hosted VPS or Cloudflare-compatible deployment after stakeholder approval.
 
-**Decision status:** ADR-0003 documents the VPS-vs-Cloudflare comparison; VPS is recommended for Phase 0 because Cloudflare Pages cannot run background jobs/long-lived processes and Cloudflare D1 lacks full PostgreSQL transactional guarantees.
+**Decision status:** ADR-0003 documents the VPS-vs-Cloudflare comparison; neither is approved for Phase 0. A product stakeholder must approve any paid infrastructure before provisioning. Cloudflare Pages cannot run background jobs/long-lived processes and Cloudflare D1 lacks full PostgreSQL transactional guarantees, so the Cloudflare path would require architectural rework.
 
 ---
 
@@ -150,24 +150,18 @@
 
 ---
 
-## 7. Hosting Strategy (resolved; see ADR-0003)
+## 7. Hosting Strategy (see ADR-0003)
 
-**Primary (Phase 0):** Single VPS + Docker Compose (~€5/month).
-- Hetzner CX11 (1 vCPU, 2 GB RAM) or equivalent: ~€5.17/month
-- PostgreSQL self-hosted in Docker
-- pg-boss jobs in PostgreSQL
-- Cloudflare Tunnel for secure remote access (no open inbound ports)
-- Cloudflare free tier for DNS/CDN
-- Cloudflare R2 for object storage (first 10 GB free)
-- Email via SMTP/Resend free tier
-- Daily pg_dump backups to R2
-- **Estimated monthly cost: ~€5–8**
+**Phase 0:** Local Docker Compose (Next.js server + PostgreSQL + pg-boss). **No cloud resources are provisioned and no paid infrastructure is assumed or approved for Phase 0.**
 
-**Documented alternative:** Cloudflare Pages + Workers + D1 + R2 + Queues (~$0–10 within free tiers). Not chosen for Phase 0 because Pages cannot run background jobs and D1 lacks full PostgreSQL transactional guarantees.
+The deployment architecture is portable (Docker Compose + PostgreSQL + S3-compatible storage) and can target either a self-hosted VPS or a Cloudflare-compatible deployment after stakeholder approval. Two documented options exist; neither is selected for Phase 0:
+
+- **Option A (self-hosted VPS):** ~€5/month (e.g., Hetzner CX11). Requires stakeholder approval before provisioning. Full relational control; team manages backups, upgrades, security patching. Single point of failure mitigated by documented pg_dump backups and restore procedure.
+- **Option B (Cloudflare Pages + Workers + D1 + R2 + Queues):** ~$0–10 within free tiers. Not chosen for Phase 0 because Pages cannot run background jobs and D1 lacks full PostgreSQL transactional guarantees; would require architectural rework.
 
 **Portability:** Docker Compose + Prisma migrations + S3-compatible storage means the stack can move to any VPS/provider with minimal rework. No proprietary platform lock-in in application code.
 
-**Do not claim "free" or "scalable" without verification:** VPS cost is verified (~€5/month); Cloudflare free tiers have documented limits (D1 storage, Worker execution time, Pages build minutes). Backups and recovery are the team's responsibility on a self-hosted VPS.
+**Do not claim "free" or "scalable" without verification:** All cited costs are approximate and unverified until a host is selected; Cloudflare free tiers have documented limits (D1 storage, Worker execution time, Pages build minutes). Backups and recovery remain the team's responsibility on any self-hosted option.
 
 ---
 
@@ -180,9 +174,9 @@
 | Prisma ORM | Great DX, type-safe, migrations | Abstraction leaks for complex queries; raw SQL escape hatch |
 | pg-boss over Redis | No extra infra to operate/pay | Slightly lower throughput than Redis; fine for agency-scale |
 | Maintained auth library (not fully custom) | MFA/recovery/sessions maintained by community | We operate and patch the library; CVE monitoring required |
-| Self-hosted PostgreSQL on VPS | Full relational control, ~€5/month | We manage backups, upgrades, security patching |
+| Self-hosted PostgreSQL (portable) | Full relational control; deployable to VPS or managed host after approval | We manage backups, upgrades, security patching on whichever host is approved |
 | PostgreSQL full-text search | No Elasticsearch cost/ops | Limited vs dedicated search; adequate initially |
-| Single VPS | ~€5/month, simple | Single point of failure; mitigated by backups + documented recovery |
+| Local Docker dev in Phase 0 | Zero infrastructure cost; immediate start | Remote deployment is a post-Phase-0 decision requiring stakeholder approval |
 
 ---
 
@@ -190,7 +184,7 @@
 
 - [ ] Technology stack justified with tradeoffs (no fashion-driven choices)
 - [ ] System architecture, module boundaries, database strategy, API approach, and hosting strategy documented
-- [ ] Hosting contradictions resolved (VPS chosen for Phase 0; Cloudflare alternative documented)
+- [ ] Hosting contradictions resolved (local Docker dev for Phase 0; VPS and Cloudflare alternatives documented; neither approved for Phase 0)
 - [ ] Security model covers authentication, authorization, input validation, audit logging, secrets management, rate limiting
 - [ ] Hosting cost realism acknowledged; no unverified "free/scalable" claims
 - [ ] Cross-referenced to ADR-0001…0006

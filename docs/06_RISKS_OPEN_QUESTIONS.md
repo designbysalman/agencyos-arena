@@ -34,7 +34,7 @@ Key confirmed requirements:
 
 ### Assumptions (working beliefs, not yet confirmed)
 - One full-time engineer; estimates in roadmap reflect that
-- Phase 0 on single VPS (~€5/month) with Docker Compose; Cloudflare Tunnel for remote access
+- Phase 0 runs on local Docker Compose (Next.js + PostgreSQL + pg-boss); no cloud resources provisioned; remote hosting decision open and unapproved
 - Cloudflare R2 for object storage; email via SMTP/Resend-style provider
 - Maintained self-hosted auth library (BetterAuth/Lucia) rather than fully custom or managed vendor
 - PostgreSQL full-text search sufficient initially
@@ -112,7 +112,7 @@ Key confirmed requirements:
 | Auth/security implementation error | Medium | High | Maintained library (ADR-0001); OWASP checklist; code review; security review before launch |
 | Scope creep (all modules at once) | High | Medium | Strict phase acceptance criteria; defer non-MVP items explicitly |
 | Third-party provider delays (email, e-sign, payment) | Medium | Medium | Architecture-first adapters; no fake behavior; integrate when credentials available |
-| Hosting cost higher than expected | Low | Low | Start ~€5/month VPS; monitor; documented exit path |
+| Hosting cost higher than expected | Low | Low | Phase 0 uses local Docker (zero cost); any remote host selected only after stakeholder approval and cost verification |
 | Permission matrix untestable | Medium | Medium | Role-based test matrix; E2E access-control suite per phase |
 | Design direction rejected | Medium | Medium | UI/UX blueprint approved before components; design review gate per phase |
 

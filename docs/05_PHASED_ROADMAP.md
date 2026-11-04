@@ -55,7 +55,8 @@ Each phase ends with a **quality gate** that must pass before the next phase beg
 **Scope:**
 - Repo structure, TypeScript (strict), ESLint, Prettier, Husky pre-commit hooks
 - Next.js (App Router) + Tailwind + design system tokens (`#F8F9FA`, `#111827`, `#047857`, dark theme)
-- Docker Compose dev environment: Next.js server + PostgreSQL + pg-boss
+- Docker Compose dev environment: Next.js server + PostgreSQL + pg-boss (local only; no cloud resources provisioned)
+- No paid infrastructure assumed or provisioned in Phase 0; remote deployment decision deferred to post-Phase-0 stakeholder approval
 - Prisma schema with core tables (organizations, users, roles, permissions, sessions, audit_logs, custom_fields, feature_flags)
 - Authentication via maintained self-hosted library (ADR-0001): register, login, logout, password reset, MFA, httpOnly cookies
 - RBAC middleware + permission guards (ADR-0004)
@@ -76,6 +77,7 @@ Each phase ends with a **quality gate** that must pass before the next phase beg
 
 **Acceptance criteria:**
 - [ ] New developer clones repo, runs `docker compose up`, accesses app locally
+- [ ] No cloud/paid infrastructure provisioned; app runs entirely on local Docker
 - [ ] Register/login/logout works with secure cookies
 - [ ] Unauthenticated users cannot access protected routes
 - [ ] CI passes on push; type-check and lint clean

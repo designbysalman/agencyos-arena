@@ -22,6 +22,13 @@ Status legend:
 - **Later** — deferred to post-MVP; explicit, not canceled
 - **Optional** — may never be built; requires separate approval
 
+**Delivery mode** (distinct from status):
+- **Working functionality** — fully implemented, tested, and usable in the phase it appears.
+- **Interface-only** — an adapter/interface exists (e.g., email, WhatsApp, AI gateway, e-signature) but no real provider behavior is implemented in MVP; provider integration is wired only when credentials are approved. Never fakes delivery success.
+- **Later** — deferred to post-MVP.
+
+Some rows are "Initial" in status but "interface-only" in delivery mode; these are noted in the acceptance criteria column.
+
 ---
 
 ## 2. Module A — Business & CRM
@@ -47,7 +54,7 @@ Status legend:
 | B1 | Proposal builder | Proposals & Docs | 2 | Phase 1 (opportunities, contacts) | Build proposal from template; line items; client details; live preview | Initial |
 | B2 | Quotation and estimate builder | Proposals & Docs | 2 | Phase 1 | Build quote; valid_until; convert to invoice (Phase 4) | Initial |
 | B3 | Contract management | Proposals & Docs | 2 | Phase 2 (proposals) | Contract record linked to proposal; status tracking | Initial |
-| B4 | Electronic signatures | Proposals & Docs | Later | Phase 2 (contracts) | Provider-independent signature adapter interface; audit trail recorded in MVP | Later |
+| B4 | Electronic signatures | Proposals & Docs | Later | Phase 2 (contracts) | **Interface-only** — provider-independent signature adapter interface; audit-trail signature recording in MVP | Later |
 | B5 | Custom forms and creative briefs | Proposals & Docs | Later | Phase 2 | Form builder; submissions linked to projects/contacts | Later |
 | B6 | Document templates | Proposals & Docs | 2 | Phase 0 (design system) | Template gallery; create/edit templates; use in proposals | Initial |
 | B7 | Conditional approvals | Proposals & Docs | 3 | Phase 2 | Approval workflow on documents; approver roles; state transitions | Initial |
@@ -104,15 +111,15 @@ Status legend:
 | E1 | Workflow automation | Automation & Comms | 5 | Phase 0 (pg-boss), Phase 4 (invoices example) | Trigger → conditions → actions rule builder; executes | Initial |
 | E2 | Trigger/action rules | Automation & Comms | 5 | Phase 5 (workflow automation) | Example: invoice overdue 7 days → reminder + notify owner | Initial |
 | E3 | Notifications | Automation & Comms | 5 | Phase 0 (auth/users) | In-app notifications; preferences; history; mark-read | Initial |
-| E4 | Email integration architecture | Automation & Comms | 5 | Phase 5 (notifications) | Provider-independent email adapter; SMTP configured; no fake delivery success | Initial |
-| E5 | WhatsApp integration architecture | Automation & Comms | Later | Phase 5 | Provider-independent WhatsApp adapter interface; no provider behavior in MVP | Later |
+| E4 | Email integration architecture | Automation & Comms | 5 | Phase 5 (notifications) | Provider-independent email adapter; SMTP configured; **interface-only — no provider behavior or fake delivery success in MVP** | Initial |
+| E5 | WhatsApp integration architecture | Automation & Comms | Later | Phase 5 | **Interface-only** — provider-independent WhatsApp adapter interface; no provider behavior in MVP | Later |
 | E6 | Shared communication inbox | Automation & Comms | 5 | Phase 1 (contacts) | Inbox; threads per contact; shared team view | Initial |
 | E7 | Communication history | Automation & Comms | 5 | Phase 6 (audit) | Per-contact communication log; email/message history | Initial |
 | E8 | Contact information masking | Automation & Comms | 5 | Phase 1 (contacts) | Masking enforced at API serialization layer based on org/contact config | Initial |
 | E9 | Scheduling and calendars | Automation & Comms | Later | Phase 5 | Calendar view; scheduling | Later |
 | E10 | Reminders and follow-ups | Automation & Comms | 5 | Phase 5 (notifications) | Task/invoice reminders; follow-up scheduling | Initial |
 | E11 | AI-assisted writing | Automation & Comms | Later | Phase 5 | AI writing assistance within documents | Later |
-| E12 | Provider-independent AI gateway | Automation & Comms | Later | Phase 5 | Gateway interface; provider swap without rewrite; no hardcoded provider behavior | Later |
+| E12 | Provider-independent AI gateway | Automation & Comms | Later | Phase 5 | **Interface-only** — gateway interface; provider swap without rewrite; no hardcoded provider behavior | Later |
 
 ---
 
@@ -122,7 +129,7 @@ Status legend:
 |---|---|---|---|---|---|---|
 | F1 | Advanced authentication | Admin & Platform | 0 | Phase 0 | Maintained auth library (ADR-0001); sessions, MFA, password recovery | Initial |
 | F2 | Role-based and custom permissions | Admin & Platform | 0 | Phase 0 | RBAC + resource-scoped; custom role builder | Initial |
-| F3 | Flexible client access | Admin & Platform | 5 | Phase 1, Phase 7 (client portal) | Client access configuration; portal scoping | Initial |
+| F3 | Flexible client access | Admin & Platform | 5 | Phase 1 (contacts), Phase 5 (communication/inbox) | Client access configuration; portal scoping | Initial |
 | F4 | Customizable dashboards | Admin & Platform | 6 | Phase 0 (design system) | Widget configuration per role | Initial |
 | F5 | Settings and preferences | Admin & Platform | 6 | Phase 0 | Org-level settings; user preferences | Initial |
 | F6 | Workspace and branding configuration | Admin & Platform | 6 | Phase 0 (design tokens) | Logo, colors, domain; multi-brand readiness | Initial |
@@ -157,15 +164,17 @@ Status legend:
 
 ---
 
-## 9. Status Summary
+## 9. Status Summary & Audit Note
 
-| Status | Count | Meaning |
-|---|---|---|
-| Initial | ~54 | MVP scope (Phases 0–6) |
-| Later | ~17 | Deferred post-MVP; explicit, not canceled |
-| Optional | ~4 | May never be built; separate approval |
+The matrix above represents every requirement drawn from the AgencyOS master specification sections A–F (Business & CRM, Proposals/Documents/Agreements, Projects/Delivery, Finance, Automation/Communication, Administration/Platform) plus the cross-cutting non-functional requirements. Each requirement is assigned a status:
 
-Exact counts are maintained in the RTM table above. The RTM is the source of truth for scope; the phased roadmap (`docs/05_PHASED_ROADMAP.md`) sequences the Initial items.
+- **Initial** — built in Phases 0–6 (MVP scope)
+- **Later** — deferred to post-MVP; explicit, not canceled
+- **Optional** — may never be built; requires separate approval
+
+**I have not run an automated line-by-line diff against the original PRD, so I do not claim machine-verified exhaustive coverage.** Every row above was checked manually against the source specification during this revision. If any source requirement is missing from this matrix, it should be raised as a blocking item before Phase 0 begins. Counts per status are approximate and are not a substitute for reviewing the table itself.
+
+The RTM is the source of truth for scope; the phased roadmap (`docs/05_PHASED_ROADMAP.md`) sequences the Initial items.
 
 ---
 

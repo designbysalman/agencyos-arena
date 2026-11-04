@@ -18,12 +18,19 @@ AgencyOS requires strong authentication and session management for internal user
 
 ## Decision
 
-**Option B — maintained self-hosted authentication library** (e.g., BetterAuth or Lucia), self-hosted on the same PostgreSQL instance, using httpOnly Secure SameSite cookies.
+**Option B — Better Auth as the preferred maintained self-hosted authentication library**, self-hosted on the same PostgreSQL instance, using httpOnly Secure SameSite cookies.
 
 Rationale:
-- Balances security (community-maintained, MFA/password recovery/OAuth built-in) with affordability (no per-user vendor fees) and portability (self-hosted, can migrate off).
+- Better Auth is a maintained, TypeScript-native library with sessions, hashing (argon2id), MFA (TOTP), OAuth, email verification, and password recovery built in.
+- Balances security (community-maintained, MFA/password recovery/OAuth out of the box) with affordability (no per-user vendor fees) and portability (self-hosted, can migrate off).
 - Avoids the high risk of fully custom auth while avoiding vendor lock-in and per-user pricing of managed auth.
 - Library is a dependency, not copied proprietary code; satisfies "secure dependency management."
+
+**Pre-implementation checks (required before Phase 0 auth work):**
+- Verify Better Auth compatibility with the Next.js App Router + PostgreSQL + Prisma stack targeted in ADR-0003.
+- Review current security advisories and maintenance cadence for Better Auth.
+- Confirm cookie/session primitives (httpOnly, Secure, SameSite, short TTL, rotation) can be enforced through Better Auth + our middleware.
+- If Better Auth fails any compatibility or security check, fall back to Option B generic (Lucia/NextAuth.js) and record the rationale in an ADR revision.
 
 ## Coverage Requirements
 
