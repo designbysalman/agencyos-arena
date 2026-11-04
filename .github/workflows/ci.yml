@@ -9,6 +9,20 @@ on:
 jobs:
   lint-and-typecheck:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agencyos
+          POSTGRES_PASSWORD: agencyos_dev_password
+          POSTGRES_DB: agencyos
+        options: >-
+          --health-cmd "pg_isready -U agencyos -d agencyos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,6 +30,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      - run: (echo > /dev/tcp/localhost/5432) &>/dev/null && echo "DB port open" || echo "DB port closed"
       - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -46,6 +61,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
+      - run: (echo > /dev/tcp/localhost/5432) &>/dev/null && echo "DB port open" || echo "DB port closed"
       - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
