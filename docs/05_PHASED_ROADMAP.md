@@ -1,340 +1,305 @@
-# Deliverable 5 — Phased Development Roadmap
+# Deliverable 5 — Phased Development Roadmap (Revised)
 
-**Status:** Proposed — awaiting review  
+**Status:** Revised — awaiting review  
 **Repository:** `designbysalman/agencyos-arena`  
-**Branch:** `arena/56716fe0-agencyos-arena`
+**Branch:** `arena/56716fe0-agencyos-arena`  
+**Supersedes:** Initial planning draft (PR #1)
 
 ---
 
 ## 1. Roadmap Philosophy
 
 - Small, reviewable changes over enormous unverified implementations
-- Each phase has defined objectives, scope, dependencies, database changes, API requirements, frontend components, security requirements, testing requirements, acceptance criteria, and a GitHub checkpoint
-- Real functionality, not decorative mocks; temporary mocks are documented and replaced before a feature is declared complete
-- No attempt to build all modules in one session; implementation starts only after architecture review and explicit approval
-- Estimates are in working weeks for one full-time engineer; they are planning estimates, not commitments
+- Each phase has objectives, scope, dependencies, database changes, API requirements, frontend components, security requirements, testing requirements, acceptance criteria, and a GitHub checkpoint
+- Real functionality, not decorative mocks; temporary mocks documented and replaced before a feature is declared complete
+- Implementation starts only after architecture review and explicit approval; no direct commits to `main`
+- **The 22-week figure is a provisional planning estimate, not a guaranteed schedule.** Actual duration depends on review turnaround, complexity discovered during implementation, and staffing. Measurable milestones and quality gates (below) govern progress, not the calendar.
 
 ---
 
-## 2. Phase Summary
+## 2. Phase Summary (provisional estimates)
 
 | Phase | Focus | Est. Duration | Gate to next |
 |---|---|---|---|
-| 0 | Foundation & Infrastructure | 3 weeks | Infra checkpoint passed |
-| 1 | CRM & Sales (Contacts, Leads, Pipelines, Opportunities) | 3 weeks | Phase 1 acceptance criteria met |
-| 2 | Proposals & Documents (Builder, Templates, PDF, Links) | 3 weeks | Phase 2 acceptance criteria met |
-| 3 | Projects & Delivery (Workspaces, Tasks, Milestones, Time) | 4 weeks | Phase 3 acceptance criteria met |
-| 4 | Finance (Invoices, Payments, Expenses, Tax, PDF invoices) | 3 weeks | Phase 4 acceptance criteria met |
-| 5 | Automation & Communication (Workflows, Notifications, Email arch.) | 3 weeks | Phase 5 acceptance criteria met |
-| 6 | Administration & Platform (RBAC, Audit, Settings, Reporting, BI) | 3 weeks | Phase 6 acceptance criteria met |
-| **Total** | **MVP feature-complete** | **~22 weeks** | **Launch review** |
+| 0 | Foundation & Infrastructure | 3 weeks | Phase 0 checkpoint passed |
+| 1 | CRM & Sales | 3 weeks | Phase 1 acceptance criteria met |
+| 2 | Proposals & Documents | 3 weeks | Phase 2 acceptance criteria met |
+| 3 | Projects & Delivery | 4 weeks | Phase 3 acceptance criteria met |
+| 4 | Finance | 3 weeks | Phase 4 acceptance criteria met |
+| 5 | Automation & Communication | 3 weeks | Phase 5 acceptance criteria met |
+| 6 | Administration & Platform | 3 weeks | Phase 6 acceptance criteria met |
+| **Total** | **MVP feature-complete** | **~22 weeks (provisional)** | **Launch review** |
 
-Effort is front-loaded toward revenue-critical workflows (CRM → proposals → projects → finance) so the agency can operate end-to-end as early as possible.
+Revenue-critical workflows (CRM → proposals → projects → finance) are front-loaded so the agency can operate end-to-end as early as possible.
 
 ---
 
-## 3. Phase 0 — Foundation & Infrastructure
+## 3. Measurable Milestones & Quality Gates
 
-**Objectives:** Establish the repo, tooling, database, auth core, and design system so later phases build on a verified base.
+Each phase ends with a **quality gate** that must pass before the next phase begins:
+
+| Gate | Criteria |
+|---|---|
+| Code quality | Lint clean, type-check clean, Prettier formatted; PR review completed |
+| Testing | Unit + component tests pass; E2E critical-path tests pass; access-control matrix tests pass |
+| Security | Auth/session review, input validation, file-upload validation, no secrets in code |
+| Documentation | Phase deliverables updated; ADRs created/revised as needed |
+| Acceptance | All phase acceptance criteria met and merged to `main` via PR |
+
+---
+
+## 4. Phase 0 — Foundation & Infrastructure
+
+**Objectives:** Establish repo, tooling, database, auth core, design system; verified base for later phases.
 
 **Scope:**
-- Repo structure, TypeScript config, ESLint, Prettier, Husky pre-commit hooks
-- Next.js (App Router) + Tailwind + custom design system tokens (colors `#F8F9FA`, `#111827`, `#047857`, dark theme)
-- Docker Compose dev environment: app + PostgreSQL
-- Prisma schema with core tables (organizations, users, sessions, roles, permissions, audit_logs)
-- Custom session-based auth (register, login, logout, password reset, httpOnly cookies)
-- RBAC middleware + permission guards
+- Repo structure, TypeScript (strict), ESLint, Prettier, Husky pre-commit hooks
+- Next.js (App Router) + Tailwind + design system tokens (`#F8F9FA`, `#111827`, `#047857`, dark theme)
+- Docker Compose dev environment: Next.js server + PostgreSQL + pg-boss
+- Prisma schema with core tables (organizations, users, roles, permissions, sessions, audit_logs, custom_fields, feature_flags)
+- Authentication via maintained self-hosted library (ADR-0001): register, login, logout, password reset, MFA, httpOnly cookies
+- RBAC middleware + permission guards (ADR-0004)
 - CI: GitHub Actions (lint, type-check, tests, build)
-- `/docs` deliverables reviewed; decision log started
+- `/docs` deliverables reviewed; decision log (ADRs) started
 
-**Dependencies:** None (repository is empty)
+**Dependencies:** None
 
-**Database changes:** `organizations`, `users`, `roles`, `permissions`, `role_permissions`, `user_roles`, `user_sessions`, `audit_logs`
+**Database changes:** `organizations`, `users`, `roles`, `permissions`, `role_permissions`, `user_roles`, `user_sessions`, `audit_logs`, `custom_fields`, `custom_field_values`, `feature_flags`
 
-**API requirements:** `POST /api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/me`, `/api/v1/auth/reset-password`, role/permission seed endpoints (admin only)
+**API requirements:** Auth endpoints (register/login/logout/me/reset-password), role/permission seed (admin only)
 
 **Frontend components:** Login page, layout shell (sidebar, top nav), design token foundation, theme switch, loading/empty/error primitives
 
-**Security:** bcrypt/argon2 password hashing, session cookie attributes (httpOnly/Secure/SameSite), CSRF double-submit, rate limit on auth endpoints, no secrets in Git (`.env.example` only)
+**Security:** Password hashing via library, session cookie attributes, CSRF protection, rate limiting on auth endpoints, no secrets in Git (`.env.example` only)
 
-**Testing:** Unit tests for auth service and permission guards; E2E smoke test for register → login → access protected page
+**Testing:** Unit tests for auth service and permission guards; E2E smoke test (register → login → protected page)
 
 **Acceptance criteria:**
-- [ ] New developer can clone repo, run `docker compose up`, and access the app locally
+- [ ] New developer clones repo, runs `docker compose up`, accesses app locally
 - [ ] Register/login/logout works with secure cookies
 - [ ] Unauthenticated users cannot access protected routes
 - [ ] CI passes on push; type-check and lint clean
 - [ ] Design tokens render correctly in light and dark modes
 
-**Checkpoint:** GitHub PR titled "Phase 0: Foundation & Infrastructure" — reviewed and merged before Phase 1.
+**Checkpoint:** GitHub PR "Phase 0: Foundation & Infrastructure" — reviewed and merged before Phase 1.
 
 ---
 
-## 4. Phase 1 — CRM & Sales
+## 5. Phase 1 — CRM & Sales
 
-**Objectives:** Enable the agency to track leads and opportunities through customizable pipelines — the first revenue workflow.
+**Objectives:** Track leads and opportunities through customizable pipelines — first revenue workflow.
 
-**Scope:**
-- Contacts and accounts management
-- Leads with source, status, owner
-- Pipelines and pipeline stages (won/lost flags)
-- Opportunities with value, close date, stage transitions
-- Kanban view of opportunities by stage
-- Lead → opportunity conversion
-- Basic search across contacts/opportunities (permission-aware)
+**Scope:** Contacts, accounts, leads, pipelines/stages, opportunities, stage transitions, lead→opportunity conversion, permission-aware search.
 
-**Dependencies:** Phase 0 (auth, RBAC, DB, design system)
+**Dependencies:** Phase 0
 
 **Database changes:** `contacts`, `accounts`, `account_contacts`, `leads`, `pipelines`, `pipeline_stages`, `opportunities`
 
-**API requirements:** CRUD for contacts, accounts, leads, pipelines, stages, opportunities; stage-transition validation (cannot skip required stages unless configured); search endpoint
+**API requirements:** CRUD for contacts/accounts/leads/pipelines/stages/opportunities; stage-transition validation; search endpoint
 
-**Frontend components:** Contact/account list + detail + edit; lead intake form; pipeline stage config; opportunity kanban board; opportunity detail with conversion action
+**Frontend components:** Contact/account list+detail+edit; lead intake form; pipeline stage config; opportunity kanban board; opportunity detail + conversion
 
-**Security:** Organization-scoped queries; role-based access (Admin/Manager see all; Employee sees assigned); audit log on create/update/delete
+**Security:** Org-scoped queries; role-based access; audit log on mutations
 
-**Testing:** Unit tests for pipeline transition rules; component tests for kanban; E2E for lead → opportunity → won
+**Testing:** Unit tests for pipeline transition rules; E2E for lead → opportunity → won/lost
 
 **Acceptance criteria:**
-- [ ] Admin can configure pipelines and stages
-- [ ] User can create a lead, convert to opportunity, move through stages, mark won/lost
-- [ ] Users cannot see other organizations' data (N/A in single-tenant, but query scoping verified in tests)
+- [ ] Admin configures pipelines and stages
+- [ ] User creates lead → converts to opportunity → moves stages → marks won/lost
+- [ ] Org-scoping verified in tests
 - [ ] All mutations appear in audit log
 
 **Checkpoint:** GitHub PR "Phase 1: CRM & Sales" — reviewed and merged.
 
 ---
 
-## 5. Phase 2 — Proposals & Documents
+## 6. Phase 2 — Proposals & Documents
 
-**Objectives:** Turn won opportunities into proposals, quotes, and contracts with PDF generation and shareable links.
+**Objectives:** Turn won opportunities into proposals, quotes, contracts with PDF generation and shareable links.
 
-**Scope:**
-- Proposal builder (line items, templates, client details)
-- Quotation/estimate builder
-- Document templates gallery
-- PDF generation for proposals and quotes
-- Shareable document links (public/protected, expiry, access log)
-- Version control for proposals/contracts
-- Contract records linked to proposals
-- E-signature architecture (interface defined; provider integration deferred or configured later)
+**Scope:** Proposal builder, quotation builder, document templates, PDF generation, shareable document links, version control, contract records, conditional approvals, e-signature architecture (interface only).
 
-**Dependencies:** Phase 1 (opportunities, contacts)
+**Dependencies:** Phase 1
 
 **Database changes:** `proposals`, `proposal_versions`, `quotes`, `contracts`, `documents`, `document_versions`, `document_links`, `signatures`
 
-**API requirements:** Proposal/quote CRUD, template CRUD, PDF generation endpoint, shareable link creation/verification, document download, signature request recording
+**API requirements:** Proposal/quote CRUD, template CRUD, PDF generation endpoint, shareable link creation/verification, document download, signature recording
 
 **Frontend components:** Proposal builder (editor + live preview), quote builder, template gallery, document list, share-link management, PDF viewer
 
-**Security:** Shareable links validated with tokens + expiry; document access scoped to client/org; PDFs generated server-side (no client-side secret exposure); e-signature provider config stored as encrypted secret (env)
+**Security:** Shareable links token-validated + expiry; document access scoped to client/org; PDFs server-side; e-signature adapter interface (no fake provider behavior)
 
-**Testing:** Unit tests for PDF content, link expiry validation; E2E for create proposal → send link → client views → accept
+**Testing:** Unit tests for PDF content, link expiry; E2E for create proposal → send link → client views → accept
 
 **Acceptance criteria:**
-- [ ] Proposal generated from template, PDF rendered correctly
-- [ ] Shareable link works for unauthenticated client view within expiry window and rejects after expiry
+- [ ] Proposal generated from template; PDF rendered correctly
+- [ ] Shareable link works within expiry, rejects after expiry
 - [ ] Proposal versions retained on edit
-- [ ] E-signature adapter interface exists (no fake provider behavior)
+- [ ] E-signature adapter interface exists
 
 **Checkpoint:** GitHub PR "Phase 2: Proposals & Documents" — reviewed and merged.
 
 ---
 
-## 6. Phase 3 — Projects & Delivery
+## 7. Phase 3 — Projects & Delivery
 
-**Objectives:** Deliver work: project workspaces, tasks, milestones, time tracking, files, client approvals.
+**Objectives:** Deliver work: project workspaces, tasks, milestones, time tracking, files, client approvals, change orders.
 
-**Scope:**
-- Project workspaces created from templates or manually
-- Tasks with assignee, milestone, priority, due date, status
-- Milestones and timeline view
-- Project templates (default task/milestone skeletons)
-- File and asset management (uploads to object storage, versions)
-- Time tracking entries linked to tasks (billable flag)
-- Client feedback and approvals on deliverables
-- Revision management
-- Change orders (scope, amount, approval)
-- Workload view (who is assigned what)
+**Scope:** Project workspaces from templates/manual; tasks; milestones/timeline; project templates; file/asset management; time tracking; client feedback/approvals; revision management; change orders; workload view.
 
-**Dependencies:** Phase 1 (contacts), Phase 2 (contracts → project kickoff)
+**Dependencies:** Phase 1, Phase 2
 
 **Database changes:** `projects`, `project_templates`, `tasks`, `task_time_entries`, `milestones`, `project_files`, `change_orders`, `issues`
 
-**API requirements:** Project CRUD, task CRUD, milestone CRUD, time entry CRUD, file upload (validated type/size, stored in object storage), file download via signed URL, change order CRUD, approval workflow
+**API requirements:** Project/task/milestone CRUD, time entry CRUD, file upload (validated, object storage, signed URL download), change order CRUD, approval workflow
 
-**Frontend components:** Project hub (overview, timeline, tasks, files, time), task board/list, time entry form, file upload with progress, client approval view, workload dashboard
+**Frontend components:** Project hub, task board/list, time entry form, file upload with progress, client approval view, workload dashboard
 
-**Security:** File type/size validation; files outside web root, served via signed URLs; task access limited to project members/assignees; client can only see own project files
+**Security:** File type/size validation; files outside web root, signed URLs; task access limited to project members/assignees; clients see only own project files
 
-**Testing:** Unit tests for time-entry aggregation and change-order amount math; E2E for create project → complete task → log time → client approves
+**Testing:** Unit tests for time-entry aggregation and change-order math; E2E for create project → complete task → log time → client approves
 
 **Acceptance criteria:**
-- [ ] Project created from template populates default tasks/milestones
-- [ ] Time entries aggregate to project totals and feed finance readiness
+- [ ] Project from template populates default tasks/milestones
+- [ ] Time entries aggregate to project totals
 - [ ] Uploaded files downloadable only by authorized users via signed URLs
-- [ ] Client approval flow records decision and timestamp
+- [ ] Client approval flow records decision + timestamp
 
 **Checkpoint:** GitHub PR "Phase 3: Projects & Delivery" — reviewed and merged.
 
 ---
 
-## 7. Phase 4 — Finance
+## 8. Phase 4 — Finance
 
-**Objectives:** Bill clients and track money — manually, without a payment gateway initially.
+**Objectives:** Bill clients and track money manually (no payment gateway).
 
-**Scope:**
-- Invoicing with flexible numbering (series, prefix, next number config)
-- Line items, tax handling (configurable; NOT auto-enabled — agency must opt into sales tax registration)
-- Estimates convertible to invoices
-- Partial payments and deposits
-- Payment recording (manual bank transfer reference + date + recorded_by); no gateway integration
-- Invoice status: draft/sent/paid/overdue/void
-- Public preview links for invoices; PDF invoices
-- Expense management linked to projects (billable flag)
-- Financial dashboards: revenue, outstanding, overdue, profitability by project
-- Multi-currency readiness (currency on invoice, default currency config)
+**Scope:** Invoicing with flexible numbering; line items; configurable tax (NOT auto-enabled — explicit opt-in); estimates convertible to invoices; partial payments/deposits; manual bank transfer recording; invoice status; PDF invoices + public preview links; expense management; financial dashboards; profitability reporting; multi-currency readiness.
 
-**Dependencies:** Phase 3 (projects, time entries for billable hours)
+**Dependencies:** Phase 3
 
 **Database changes:** `invoices`, `invoice_items`, `payments`, `estimates`, `expense_items`, `tax_settings`, `currency_config`
 
-**API requirements:** Invoice CRUD, numbering service (atomic next-number), payment recording, estimate→invoice conversion, expense CRUD, PDF invoice generation, financial report aggregates
+**API requirements:** Invoice CRUD, atomic numbering service, payment recording, estimate→invoice conversion, expense CRUD, PDF invoice generation, financial report aggregates
 
-**Frontend components:** Invoice list + detail + editor, payment record form, estimate list, expense tracker, financial dashboard charts, tax settings page (opt-in toggle, explicit wording)
+**Frontend components:** Invoice list/detail/editor, payment record form, estimate list, expense tracker, financial dashboard, tax settings page (opt-in toggle with warning)
 
-**Security:** Invoice numbering atomicity (no duplicates); payment recording requires permission; financial data restricted to internal roles (clients see only their own invoices); tax not calculated unless `tax_settings.registered = true`
+**Security:** Atomic invoice numbering (no duplicates); payment recording requires permission; financial data restricted to internal roles; tax zero unless `tax_settings.registered = true`; clients see only own invoices
 
-**Testing:** Unit tests for invoice totals/tax math, numbering concurrency; E2E for create invoice → send → record partial payment → mark overdue → pay in full
+**Testing:** Unit tests for invoice totals/tax math, numbering concurrency; E2E for create invoice → send → record partial payment → overdue → pay in full
 
 **Acceptance criteria:**
-- [ ] Invoice with flexible numbering generated and PDF rendered
-- [ ] Partial payment recorded correctly; balance and status update
-- [ ] Invoice marked overdue automatically by due date (via background job)
-- [ ] Tax is zero/excluded unless org explicitly opts in to tax registration
+- [ ] Invoice with flexible numbering generated; PDF rendered
+- [ ] Partial payment recorded; balance/status update correctly
+- [ ] Invoice marked overdue automatically by due date (background job)
+- [ ] Tax excluded unless org explicitly opts in to tax registration
 - [ ] Clients cannot view other clients' invoices
 
 **Checkpoint:** GitHub PR "Phase 4: Finance" — reviewed and merged.
 
 ---
 
-## 8. Phase 5 — Automation & Communication
+## 9. Phase 5 — Automation & Communication
 
-**Objectives:** Reduce manual work with workflow rules and centralize client communication.
+**Objectives:** Reduce manual work with workflow rules; centralize client communication.
 
-**Scope:**
-- Workflow rule builder (trigger → conditions → actions), e.g., "invoice overdue 7 days → send reminder email + notify owner"
-- pg-boss job queue for scheduled and triggered actions
-- In-app notifications with preferences and history
-- Email integration architecture (adapter interface; SMTP provider configured)
-- WhatsApp integration architecture (adapter interface; no provider behavior implemented yet)
-- Shared communication inbox; per-contact communication history
-- Scheduling and calendars; reminders and follow-ups
-- AI-assisted writing via provider-independent AI gateway (architecture only)
+**Scope:** Workflow rule builder (trigger→conditions→actions); pg-boss job queue; in-app notifications; email integration architecture (adapter); WhatsApp integration architecture (adapter interface only); shared inbox; communication history; scheduling/calendars; reminders/follow-ups; AI gateway architecture (interface only).
 
-**Dependencies:** Phase 4 (invoices for overdue trigger example), Phase 2 (templates for email content)
+**Dependencies:** Phase 4
 
 **Database changes:** `workflow_rules`, `workflow_executions`, `notifications`, `email_messages`, `scheduled_tasks`, `communication_threads`, `messages`
 
-**API requirements:** Workflow CRUD, execution log, notification CRUD + mark-read, email send/receive adapter endpoints, inbox thread/list view, scheduled task management
+**API requirements:** Workflow CRUD, execution log, notification CRUD + mark-read, email adapter endpoints, inbox thread/list, scheduled task management
 
 **Frontend components:** Workflow rule builder, notification center, inbox, communication timeline per contact, calendar view, reminder form
 
-**Security:** Outbound email/WhatsApp adapters validate destination against opt-out/consent flags; AI gateway sends only permitted data; no PII leaked to third-party adapters without configuration
+**Security:** Outbound email/WhatsApp adapters validate destination against consent/opt-out; AI gateway sends only permitted data; no PII leaked without configuration
 
 **Testing:** Unit tests for workflow condition evaluation; E2E for overdue invoice → reminder email queued → notification created
 
 **Acceptance criteria:**
-- [ ] Admin can create a working trigger/action rule that executes
+- [ ] Admin creates working trigger/action rule that executes
 - [ ] Overdue invoices generate notifications automatically
 - [ ] Inbox shows threads per contact with history
-- [ ] AI gateway adapter interface exists with no hardcoded provider behavior
+- [ ] AI gateway adapter interface exists (no hardcoded provider behavior)
 
 **Checkpoint:** GitHub PR "Phase 5: Automation & Communication" — reviewed and merged.
 
 ---
 
-## 9. Phase 6 — Administration & Platform
+## 10. Phase 6 — Administration & Platform
 
-**Objectives:** Complete the operating system: user management, permissions, settings, reporting, observability.
+**Objectives:** Complete the OS: user management, permissions, settings, reporting, observability, export, developer workspace.
 
-**Scope:**
-- Advanced auth: password policy, MFA preparation, session management UI
-- Custom roles and permissions builder; flexible client access configuration
-- Customizable dashboards (widget configuration per role)
-- Workspace and branding configuration (logo, colors, domain); multi-brand readiness
-- Security and audit log viewer
-- Backups and recovery documentation verification
-- Import/export (CSV/JSON) and data portability
-- Permission-aware search across permitted records
-- Feature management (feature flags per org)
-- Reporting and analytics (revenue forecasting, profitability)
-- Data lifecycle and retention controls
-- Usage and system health monitoring endpoints
+**Scope:** Advanced auth (MFA, session management UI), custom roles/permissions builder, customizable dashboards, workspace/branding, audit log viewer, backups/recovery verification, import/export, permission-aware search, feature flags, reporting/analytics, retention controls, health monitoring, secure developer workspace.
 
 **Dependencies:** All prior phases
 
-**Database changes:** `feature_flags`, retention config tables; indexes for search/reporting
+**Database changes:** Retention config tables; search/reporting indexes
 
-**API requirements:** User/role management, custom role builder, export job trigger, search endpoint with permission filtering, health/metrics endpoints
+**API requirements:** User/role management, custom role builder, export job trigger, search endpoint (permission-filtered), health/metrics endpoints
 
 **Frontend components:** Users & roles UI, custom permission builder, settings pages, audit log viewer, export dialog, dashboard builder, reports, health dashboard
 
-**Security:** Role changes audited; export job accessible to admins only; search results filtered by permissions server-side; secrets never returned in API responses
+**Security:** Role changes audited; export admin-only; search filtered server-side; secrets never returned in API responses
 
 **Testing:** Unit tests for permission resolution matrix; E2E for admin creates custom role → assigns user → user sees scoped UI; access-control E2E suite
 
 **Acceptance criteria:**
-- [ ] Admin can create a custom role with granular permissions and assign it
+- [ ] Admin creates custom role with granular permissions and assigns it
 - [ ] Audit log viewer shows actor, action, resource, timestamp
 - [ ] Full-org export produces usable JSON/CSV
-- [ ] Search returns only permitted records for each role
+- [ ] Search returns only permitted records per role
 - [ ] Health endpoint reports DB, queue, storage status
 
 **Checkpoint:** GitHub PR "Phase 6: Administration & Platform" — reviewed and merged.
 
 ---
 
-## 10. Launch Review (Post-Phase 6)
+## 11. Launch Review (Post-Phase 6)
 
 Validation gate before declaring MVP complete:
 - [ ] End-to-end critical path tested: lead → opportunity → proposal → contract → project → invoice → payment
-- [ ] All phase acceptance criteria met and merged to main
+- [ ] All phase acceptance criteria met and merged to `main`
 - [ ] Load/smoke test on target hosting
 - [ ] Backup restore test performed
-- [ ] Security review of auth, authorization, and file handling completed
+- [ ] Security review of auth, authorization, file handling completed
 - [ ] Documentation updated: user guide, admin guide, deployment runbook
 
 ---
 
-## 11. Deferred Capabilities (explicitly not in MVP)
+## 12. Deferred Capabilities (Later — not canceled)
 
-- Integrated payment gateway (Stripe/PayPal processing); manual bank transfer recording only
-- Commercial multi-tenant billing (subscriptions, plans, metered usage)
-- Native mobile applications
-- AI model hosting or fine-tuning (AI gateway architecture only)
-- Dedicated search engine (Elasticsearch/Algolia); PostgreSQL full-text used initially
-- Virus scanning on uploads (noted as future hardening)
-- Recurring/subscription invoicing
-
----
-
-## 12. Risks by Phase (summary; full detail in Deliverable 6)
-
-- Phase 0: environment setup delays; auth security implementation errors
-- Phase 1–3: scope creep in Kanban/timeline UI complexity
-- Phase 4: invoice numbering concurrency, tax misconfiguration risk
-- Phase 5: third-party provider delays (email/WhatsApp); adapters remain untested without provider accounts
-- Phase 6: permission matrix complexity grows combinatorially
-
-**Mitigation:** strict acceptance criteria per phase, small PRs, E2E tests for critical paths, defer provider integrations until architecture validated.
+- Integrated payment gateway (Stripe/PayPal); manual bank transfer recording only in MVP
+- E-signature provider integration; audit-trail signature recording in MVP
+- WhatsApp integration; architecture-only in MVP
+- Multi-currency; single currency in MVP
+- Revenue forecasting; dashboards in MVP
+- AI gateway/provider integration; architecture-only in MVP
+- Multi-brand readiness; single brand in MVP
+- Native mobile apps; responsive web covers mobile
+- Dedicated search engine; PostgreSQL full-text in MVP
+- Virus scanning on uploads; noted as future hardening
+- Commercial multi-tenant billing; explicitly excluded from MVP
 
 ---
 
-## 13. Acceptance Criteria for This Deliverable
+## 13. Risks by Phase
+
+| Phase | Key risks | Mitigation |
+|---|---|---|
+| 0 | Environment setup delays; auth security errors | Strict acceptance criteria; security review before launch |
+| 1–3 | Scope creep in Kanban/timeline UI | Fixed scope per phase; defer polish |
+| 4 | Invoice numbering concurrency; tax misconfiguration | Atomic numbering; tax opt-in with explicit warning |
+| 5 | Third-party provider delays; untested adapters | Adapter interface first; no fake success; integrate when credentials available |
+| 6 | Permission matrix complexity | Automated matrix tests; scoped to critical resources |
+
+---
+
+## 14. Acceptance Criteria for This Deliverable
 
 - [ ] All seven phases defined with objectives, scope, dependencies, DB changes, APIs, frontend, security, testing, acceptance criteria, checkpoints
-- [ ] Critical milestones and validation gates identified
+- [ ] Measurable milestones and quality gates defined per phase
+- [ ] Provisional 22-week estimate labeled as non-guaranteed
 - [ ] Risks and deferred capabilities listed
-- [ ] Effort estimates labeled as planning estimates
+- [ ] Launch review criteria defined
 - [ ] Reviewed and approved before Phase 0 work begins

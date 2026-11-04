@@ -1,132 +1,126 @@
-# Deliverable 6 — Risks & Open Questions
+# Deliverable 6 — Risks & Open Questions (Revised)
 
-**Status:** Proposed — awaiting review  
+**Status:** Revised — awaiting review  
 **Repository:** `designbysalman/agencyos-arena`  
-**Branch:** `arena/56716fe0-agencyos-arena`
+**Branch:** `arena/56716fe0-agencyos-arena`  
+**Supersedes:** Initial planning draft (PR #1)
 
 ---
 
-## 1. Purpose
+## 1. Confirmed Requirements vs Assumptions vs Proposals
 
-This document separates **confirmed requirements** (from the AgencyOS master brief) from **assumptions** and **proposals**, then lists open questions, technical limitations, integration dependencies, security concerns, and architectural risks. Nothing here blocks Phase 0, but several items need answers before later phases are declared complete.
+### Confirmed requirements (from AgencyOS master brief, non-negotiable)
+All items in the master specification are preserved in the Requirements Traceability Matrix (`docs/07_REQUIREMENTS_TRACEABILITY_MATRIX.md`) with Initial / Later / Optional status. None are silently excluded.
 
----
-
-## 2. Confirmed Requirements vs Assumptions vs Proposals
-
-### Confirmed requirements (from brief, non-negotiable)
+Key confirmed requirements:
 - Single-agency internal platform with controlled client/collaborator portal access
-- Architecture must allow future multi-tenant SaaS without rewrite
+- Architecture supports future multi-tenant SaaS without rewrite
 - TypeScript-first; modular monolith; avoid microservice complexity
-- PostgreSQL or justified relational database; database migrations
-- Light/dark themes; design tokens and reusable components
+- PostgreSQL; database migrations
+- Light/dark themes; design tokens; reusable components
 - Canvas `#F8F9FA`, primary text `#111827`, primary accent `#047857`
 - Responsive desktop/tablet/mobile; accessible navigation and controls
 - Loading, empty, error, success states on all screens
 - Strong authentication and session management; least privilege; server-side authorization
 - Input validation; protection against common web vulnerabilities; secure upload handling
 - Secrets management; audit trails; data isolation; rate limiting
-- No credentials/tokens/passwords/secrets committed to Git
-- Affordable initial hosting; Cloudflare preferred when technically suitable; deployment portability; no unverified free/scalable claims
-- Invoicing works without an integrated payment gateway; manual bank transfers and payment recording supported
+- No credentials/tokens/passwords/secrets in Git
+- Affordable initial hosting; Cloudflare preferred when suitable; portability; no unverified free/scalable claims
+- Invoicing without integrated payment gateway; manual bank transfers and payment recording
 - Tax configuration does NOT automatically assume sales-tax registration
-- Real functionality only; no fake backend integrations or misleading states; temporary mocks documented
+- Real functionality only; no fake backend integrations; temporary mocks documented
 - No commercial multi-tenant billing system in initial implementation
-- Planning deliverables saved under `/docs/`
+- Planning deliverables under `/docs/`
 
 ### Assumptions (working beliefs, not yet confirmed)
-- One full-time engineer implementing; estimates in Phase roadmap reflect that
-- Initial deployment on a single VPS (~€5/month) with Docker Compose; Cloudflare Tunnel for remote access
-- Cloudflare R2 for object storage; email via an SMTP/Resend-style provider
-- Custom session-based auth rather than a third-party auth vendor (cost control)
-- PostgreSQL full-text search sufficient initially; no dedicated search engine
-- pg-boss (PostgreSQL-backed queue) sufficient initially; Redis/BullMQ upgrade path documented
-- No mobile apps; responsive web covers mobile clients
+- One full-time engineer; estimates in roadmap reflect that
+- Phase 0 on single VPS (~€5/month) with Docker Compose; Cloudflare Tunnel for remote access
+- Cloudflare R2 for object storage; email via SMTP/Resend-style provider
+- Maintained self-hosted auth library (BetterAuth/Lucia) rather than fully custom or managed vendor
+- PostgreSQL full-text search sufficient initially
+- pg-boss sufficient initially; Redis/BullMQ upgrade path documented
 
 ### Proposals (architectural recommendations awaiting approval)
-- Next.js App Router as frontend + API in one deployable
-- Prisma ORM with Prisma Migrate (dev) / reviewed SQL (prod)
-- Zod for input validation; Lucide for icons
-- Tailwind + in-house shadcn/ui-style primitives (no paid component library)
-- Vitest + React Testing Library + Playwright for testing
-- GitHub Actions for CI/CD
-- Six-phase roadmap over ~22 weeks
+- ADR-0001…0006 decisions; Next.js App Router; Prisma; Zod; Radix UI; Lucide; Vitest/Playwright; GitHub Actions
+- Six-phase roadmap (~22 weeks, provisional)
 
 ---
 
-## 3. Open Questions Requiring Clarification
+## 2. Open Questions Requiring Clarification
 
 | # | Question | Why it matters | Suggested decider | Status |
 |---|---|---|---|---|
-| 1 | Is the single-VPS + Docker Compose hosting model approved, or should we target Cloudflare Pages + managed Postgres (Neon/Supabase) + R2 from day one? | Affects Phase 0 setup, deployment scripts, and cost profile | Product stakeholder | Open |
-| 2 | Which email provider should the integration architecture target first (SMTP, Resend, SendGrid)? | Determines adapter implementation and dev testing ability | Product stakeholder | Open |
-| 3 | Is WhatsApp integration required for MVP, or is architecture-only sufficient? | Affects Phase 5 scope | Product stakeholder | Open |
-| 4 | Which e-signature approach: provider (DocuSign/HelloSign-style) adapter, or simple audit-trail signature recording? | Affects Phase 2 contract scope | Product stakeholder | Open |
-| 5 | Is MFA required for MVP, or is strong session auth sufficient initially? | Affects Phase 6 auth scope | Product stakeholder | Open |
-| 6 | What is the expected data volume (contacts, invoices, files) to size the VPS and backup strategy? | Affects infrastructure sizing and backup design | Product stakeholder | Open |
-| 7 | Are there specific regulatory requirements (GDPR, CCPA, tax jurisdictions) that change data retention or tax handling? | Affects tax settings and retention design | Product stakeholder | Open |
-| 8 | Who performs design review / UI sign-off before implementation of each phase? | Ensures quality gates | Product stakeholder | Open |
+| 1 | Is single-VPS + Docker Compose approved, or target Cloudflare Pages + Workers + D1 + R2 from day one? | Affects Phase 0 setup, deployment, cost | Product stakeholder | Open |
+| 2 | Which email provider for the integration architecture first (SMTP, Resend, SendGrid)? | Determines adapter implementation and dev testing | Product stakeholder | Open |
+| 3 | Is WhatsApp integration required for MVP, or architecture-only sufficient? | Affects Phase 5 scope | Product stakeholder | Open |
+| 4 | Which e-signature approach: provider adapter (DocuSign/HelloSign-style) or simple audit-trail signature recording? | Affects Phase 2 contract scope | Product stakeholder | Open |
+| 5 | Is MFA required for MVP, or strong session auth sufficient initially? | Affects Phase 0/6 auth scope | Product stakeholder | Open |
+| 6 | Expected data volume (contacts, invoices, files) to size VPS and backups? | Affects infrastructure sizing | Product stakeholder | Open |
+| 7 | Specific regulatory requirements (GDPR, CCPA, tax jurisdictions) changing retention or tax handling? | Affects tax settings and retention design | Product stakeholder | Open |
+| 8 | Who performs design review / UI sign-off before each phase implementation? | Ensures quality gates | Product stakeholder | Open |
+| 9 | Which maintained auth library: BetterAuth, Lucia, or NextAuth.js? | Affects Phase 0 implementation and MFA/recovery coverage | Lead architect | Open |
 
 ---
 
-## 4. Technical Limitations & Integration Dependencies
+## 3. Technical Limitations & Integration Dependencies
 
 | Area | Limitation / Dependency | Mitigation |
 |---|---|---|
-| Email/WhatsApp | No provider accounts configured yet; adapters are interfaces only until credentials exist | Build adapter interface + log channel in Phase 5; wire real provider when credentials available; never fake delivery success |
-| E-signatures | No provider integration in MVP | Contract status + audit trail only; provider adapter added later behind the same interface |
-| Payments | No payment gateway in MVP | Manual bank transfer recording; gateway integration explicitly deferred (not in scope) |
-| File storage | Object storage cost scales with volume; no egress fees on R2 but storage costs apply | Monitor R2 usage; lifecycle rules for old versions; local disk fallback in dev |
-| Search | PostgreSQL full-text is adequate for record search but not full-document content search | Scope search to record metadata; document full-text search deferred |
-| Auth | Custom auth means we own session security, password recovery, MFA readiness | Follow OWASP guidance; argon2id, secure cookies, CSRF, rate limiting; security review before launch |
-| Hosting | Single VPS is a single point of failure | Daily pg_dump backups to R2, documented restore procedure, Docker Compose portability |
+| Email/WhatsApp | No provider accounts configured; adapters are interfaces until credentials exist | Build adapter interface + log channel in Phase 5; wire real provider when credentials available; never fake delivery success |
+| E-signatures | No provider integration in MVP | Contract status + audit trail only; provider adapter later behind same interface |
+| Payments | No payment gateway in MVP | Manual bank transfer recording; gateway integration explicitly deferred |
+| File storage | Object storage cost scales with volume; R2 first 10 GB free | Monitor R2 usage; lifecycle rules; local disk fallback in dev |
+| Search | PostgreSQL full-text adequate for record search, not full-document search | Scope search to record metadata; document full-text search deferred |
+| Auth | Self-hosted library means we own patching/upgrades | CVE monitoring; keep library updated; security review before launch |
+| Hosting | Single VPS is a single point of failure | Daily pg_dump to R2; documented restore; Docker Compose portability |
 
 ---
 
-## 5. Security Concerns
+## 4. Security Concerns & Controls
 
 | Concern | Risk if unaddressed | Planned control |
 |---|---|---|
-| Session hijacking | Unauthorized access as another user | httpOnly, Secure, SameSite cookies; short session TTL; rotation on login; CSRF double-submit |
-| Privilege escalation | Employee accesses admin-only data | Server-side authorization on every route + service-layer guards; never frontend-only enforcement |
-| File upload abuse | Executable served from storage, XSS via SVG, storage exhaustion | Type/size validation, store outside web root, signed URLs, no direct bucket serving |
-| PII leakage to clients | Client sees another client's contact data | Organization + client scoping on every query; masking layer for contact fields |
-| Audit log tampering | Undisclosed data changes | Append-only logs, actor/IP captured at middleware level, PII redacted in stored payload |
-| Secrets in code | Credentials committed to Git | `.env` in .gitignore, `.env.example` committed without values, pre-commit secret scanning, CI secret scanning |
-| Tax miscalculation | Agency charges tax it isn't registered for | Tax disabled by default; explicit opt-in toggle with warning copy; tax rate config UI |
-| IDOR (Insecure Direct Object Reference) | Guessing URLs exposes other users' records | UUID primary keys, organization scoping, ownership checks in service layer |
+| Session hijacking | Unauthorized access as another user | httpOnly, Secure, SameSite cookies; short TTL; rotation on login; CSRF double-submit |
+| Privilege escalation | Employee accesses admin-only data | Server-side authorization on every route + service-layer guards |
+| File upload abuse | Executable served from storage, XSS via SVG, storage exhaustion | Type/size validation; outside web root; signed URLs; no direct bucket serving |
+| PII leakage to clients | Client sees another client's contact data | Org + client scoping on every query; masking at serialization layer |
+| Audit log tampering | Undisclosed data changes | Append-only logs; actor/IP at middleware; PII redacted in stored payload |
+| Secrets in code | Credentials committed to Git | `.env` in .gitignore; `.env.example` without values; pre-commit secret scanning; CI secret scanning |
+| Tax miscalculation | Agency charges tax it isn't registered for | Tax disabled by default; explicit opt-in toggle with warning copy |
+| IDOR | Guessing URLs exposes other users' records | UUID primary keys; org scoping; ownership checks in service layer |
 
 ---
 
-## 6. Decisions That Could Affect Future Architecture
+## 5. Decisions That Could Affect Future Architecture
 
 | Decision | Future impact | Reversibility |
 |---|---|---|
-| Modular monolith vs microservices now | Monolith is cheaper/simpler now; extraction later requires interface refactor but no data migration if module boundaries are clean | Medium — boundaries must be respected from day one |
-| Single database schema with `organization_id` | Enables multi-tenancy later without schema rewrite; RLS can be added later | High — easy to add, hard to remove if skipped |
-| Next.js API routes vs separate NestJS service | One deployable now; separate API service extractable later if team grows | Medium |
-| Prisma ORM | Fast dev now; complex queries may need raw SQL escape hatch | Medium — migration to Drizzle/raw SQL is possible but costly |
-| pg-boss vs Redis/BullMQ | No extra infra now; Redis upgrade path when job volume justifies it | High — both are queue abstractions behind same job interface |
-| Custom auth vs third-party vendor | No per-user cost now; we own security responsibility | Medium — switching vendors later requires user migration |
+| Modular monolith vs microservices now | Cheaper/simpler now; extraction later requires interface refactor, no data migration if boundaries clean | Medium — boundaries must be respected from day one |
+| Single schema with `organization_id` | Enables multi-tenancy later without schema rewrite; RLS can be added later | High — easy to add |
+| Next.js API routes vs separate service | One deployable now; separate API service extractable later | Medium |
+| Prisma ORM | Fast dev now; complex queries may need raw SQL | Medium |
+| pg-boss vs Redis/BullMQ | No extra infra now; Redis upgrade path when volume justifies | High |
+| Custom auth → maintained library (ADR-0001) | Community-maintained security; self-operated; portable | Medium — migration possible but costly |
+| VPS + Docker (ADR-0003) vs Cloudflare-native | Affordable, portable, PostgreSQL + background jobs; Cloudflare path requires re-architecture | Medium |
 
 ---
 
-## 7. Risk Register (Top Risks)
+## 6. Risk Register (Top Risks)
 
-| Risk | Likelihood | Impact | Owner | Mitigation |
-|---|---|---|---|---|
-| Auth/security implementation error | Medium | High | Engineer | OWASP checklist, code review focused on auth, third-party security review before launch |
-| Scope creep (trying to build all modules at once) | High | Medium | Engineer | Strict phase acceptance criteria; defer non-MVP items explicitly |
-| Third-party provider delays (email, e-sign, payment) | Medium | Medium | Product | Architecture-first adapters; no fake behavior; integrate only when credentials available |
-| Hosting cost higher than expected | Low | Low | Engineer | Start with ~€5/month VPS; monitor; documented exit path to other providers |
-| Permission matrix becomes untestable | Medium | Medium | Engineer | Role-based test matrix; E2E access-control suite per phase |
-| Design/development rework if UI direction rejected | Medium | Medium | Product | UI/UX blueprint approved before component implementation; design review gate per phase |
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Auth/security implementation error | Medium | High | Maintained library (ADR-0001); OWASP checklist; code review; security review before launch |
+| Scope creep (all modules at once) | High | Medium | Strict phase acceptance criteria; defer non-MVP items explicitly |
+| Third-party provider delays (email, e-sign, payment) | Medium | Medium | Architecture-first adapters; no fake behavior; integrate when credentials available |
+| Hosting cost higher than expected | Low | Low | Start ~€5/month VPS; monitor; documented exit path |
+| Permission matrix untestable | Medium | Medium | Role-based test matrix; E2E access-control suite per phase |
+| Design direction rejected | Medium | Medium | UI/UX blueprint approved before components; design review gate per phase |
 
 ---
 
-## 8. Acceptance Criteria for This Deliverable
+## 7. Acceptance Criteria for This Deliverable
 
-- [ ] Confirmed requirements, assumptions, and proposals clearly distinguished
+- [ ] Confirmed requirements, assumptions, proposals clearly distinguished
 - [ ] Open questions listed with owners and status
 - [ ] Technical limitations and integration dependencies documented without inventing capabilities
 - [ ] Security concerns mapped to controls
