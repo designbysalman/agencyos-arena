@@ -15,9 +15,8 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci --legacy-peer-deps
-      # Prisma Client type augmentation is provided by types/prisma-client.d.ts
-      # for environments where prisma generate cannot download binaries.
+      - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -43,14 +42,11 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci --legacy-peer-deps
-      # Generate Prisma Client for real database access in integration tests.
-      # If binary download fails, unit tests still run (they mock the DB layer).
-      - run: npx prisma generate || true
+      - run: npm ci
+      - run: npx prisma generate
       - run: npx prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-        if: success()
       - run: npm test
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -67,6 +63,6 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci --legacy-peer-deps
-      - run: npx prisma generate || true
+      - run: npm ci
+      - run: npx prisma generate
       - run: npm run build
