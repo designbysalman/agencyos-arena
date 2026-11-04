@@ -30,10 +30,12 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-          PRISMA_CLI_DISABLE_TELEMETRY: "1"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -60,10 +62,12 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-          PRISMA_CLI_DISABLE_TELEMETRY: "1"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: node_modules/.bin/prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
@@ -84,8 +88,10 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-          PRISMA_CLI_DISABLE_TELEMETRY: "1"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: npm run build
