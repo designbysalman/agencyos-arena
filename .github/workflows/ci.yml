@@ -33,7 +33,6 @@ jobs:
       - run: (echo > /dev/tcp/localhost/5432) &>/dev/null && echo "DB port open" || echo "DB port closed"
       - run: node_modules/.bin/prisma generate
         env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
       - run: npm run lint
       - run: npx tsc --noEmit
@@ -64,7 +63,6 @@ jobs:
       - run: (echo > /dev/tcp/localhost/5432) &>/dev/null && echo "DB port open" || echo "DB port closed"
       - run: node_modules/.bin/prisma generate
         env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
       - run: node_modules/.bin/prisma migrate deploy
         env:
@@ -88,6 +86,5 @@ jobs:
       - run: npm ci
       - run: node_modules/.bin/prisma generate
         env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           PRISMA_CLI_DISABLE_TELEMETRY: "1"
       - run: npm run build
