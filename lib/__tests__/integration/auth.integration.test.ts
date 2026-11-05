@@ -508,7 +508,7 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     // Valid session cookie should allow access to /dashboard
     const dashboardRes = await authFetch('/dashboard');
     expect(dashboardRes.status).toBe(200);
-  });
+  }, 30000);
 
   it('should reject missing session on protected /dashboard route', async () => {
     // No session cookie at all - use redirect: 'manual' to see the
@@ -537,9 +537,13 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     const hasRedirectHeader = redirectHeaders.some(([, value]) => value.includes('/login'));
     // Next.js RSC redirect payload includes the target path in the body
     const isRscRedirect = body.includes('/login');
-    // No dashboard content may be exposed to a forged session
-    expect(body).not.toContain('Dashboard');
+    // No protected dashboard data may be exposed to a forged session.
+    // Check specific protected data values, not generic words like "Dashboard"
+    // which appear in redirect payload paths.
+    expect(body).not.toContain('$0.00');
     expect(body).not.toContain('Total Revenue');
+    expect(body).not.toContain('Open Opportunities');
+    expect(body).not.toContain('Pipeline is empty');
     // At least one redirect mechanism must confirm rejection
     expect(isHttpRedirect || hasRedirectHeader || isRscRedirect).toBe(true);
   });

@@ -87,7 +87,14 @@ jobs:
           name: prisma-migrate-log
           path: prisma-migrate.log
       - run: |
-          npm run dev &
+          npm run build &
+          BUILD_PID=$!
+          wait $BUILD_PID
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Next.js build failed" >&2
+            exit 1
+          fi
+          npm start &
           SERVER_PID=$!
           SERVER_READY=0
           for i in $(seq 1 30); do
