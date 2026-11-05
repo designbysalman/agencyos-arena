@@ -8,7 +8,7 @@ import { z } from 'zod';
  */
 
 const baseContactSchema = z.object({
-  accountId: z.string().uuid().optional().nullable(),
+  accountId: z.string().cuid().optional().nullable(),
   firstName: z.string().min(1, 'First name is required').max(100).optional().nullable(),
   lastName: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email('Invalid email address').optional().nullable(),
@@ -43,7 +43,7 @@ export const contactQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   pageSize: z.coerce.number().min(1).max(100).default(20),
   search: z.string().optional(),
-  accountId: z.string().uuid().optional(),
+  accountId: z.string().cuid().optional(),
   status: z.string().optional(),
   sortBy: z.enum(['firstName', 'lastName', 'email', 'createdAt', 'updatedAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),

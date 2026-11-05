@@ -74,16 +74,6 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUser();
 
-    // Check user's organization directly from the database (not the session,
-    // which may be stale). If already bootstrapped, return 409.
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { organizationId: true },
-    });
-    if (dbUser?.organizationId) {
-      return NextResponse.json({ error: 'Organization already bootstrapped' }, { status: 409 });
-    }
-
     const body = await request.json();
     const parsed = bootstrapSchema.safeParse(body);
 
@@ -108,72 +98,78 @@ export async function POST(request: Request) {
     }
 
     // Create organization, role, permissions, and user membership atomically.
-    // The user update uses a conditional where (organizationId: null) to ensure
-    // only one bootstrap can succeed per user (concurrency safety).
-    const result = await prisma.$transaction(async (tx: typeof prisma) => {
-      // 1. Create the organization
-      const organization = await tx.organization.create({
-        data: {
-          name: organizationName,
-          slug,
-        },
-      });
+    // Uses SELECT ... FOR UPDATE to lock the user row, ensuring only one
+    // concurrent bootstrap can succeed per user. The lock is held for the
+    // entire transaction, so the second request blocks until the first
+    // commits, then sees organizationId already set and returns 409.
+    const result = await prisma.$transaction(
+      async (tx: typeof prisma) => {
+        // 1. Lock the user row to serialize concurrent bootstrap attempts
+        await tx.$queryRawUnsafe('SELECT id FROM "User" WHERE id = $1 FOR UPDATE', user.id);
 
-      // 2. Ensure CRM permissions exist (using transaction client)
-      await ensureCrmPermissions(tx);
-
-      // 3. Create an admin role for this organization
-      const role = await tx.role.create({
-        data: {
-          name: 'Administrator',
-          description: 'Full access to all organization resources',
-          organizationId: organization.id,
-          isSystem: true,
-        },
-      });
-
-      // 4. Assign all CRM permissions to the admin role
-      const permissions = await tx.permission.findMany({
-        where: { code: { in: CRM_PERMISSION_CODES } },
-      });
-      await tx.rolePermission.createMany({
-        data: permissions.map((p: { id: string }) => ({
-          roleId: role.id,
-          permissionId: p.id,
-        })),
-      });
-
-      // 5. Assign the user to the admin role in this organization
-      const userRole = await tx.userRole.create({
-        data: {
-          userId: user.id,
-          roleId: role.id,
-          organizationId: organization.id,
-          assignedBy: user.id,
-        },
-      });
-
-      // 6. Link the user to the organization (conditional update for concurrency safety).
-      // If another concurrent bootstrap already set organizationId, this update matches
-      // no rows and Prisma throws P2025. We convert that to a 409 (already bootstrapped).
-      let updatedUser;
-      try {
-        updatedUser = await tx.user.update({
-          where: { id: user.id, organizationId: null },
-          data: { organizationId: organization.id },
+        // 2. Check organizationId inside the lock (defense against TOCTOU)
+        const lockedUser = await tx.user.findUnique({
+          where: { id: user.id },
+          select: { organizationId: true },
         });
-      } catch (err) {
-        const prismaError = err as { code?: string };
-        if (prismaError.code === 'P2025') {
+        if (lockedUser?.organizationId) {
           throw new Error('Organization already bootstrapped') as Error & {
             statusCode: 409;
           };
         }
-        throw err;
-      }
 
-      return { organization, role, userRole, user: updatedUser };
-    });
+        // 3. Create the organization
+        const organization = await tx.organization.create({
+          data: {
+            name: organizationName,
+            slug,
+          },
+        });
+
+        // 4. Ensure CRM permissions exist (using transaction client)
+        await ensureCrmPermissions(tx);
+
+        // 5. Create an admin role for this organization
+        const role = await tx.role.create({
+          data: {
+            name: 'Administrator',
+            description: 'Full access to all organization resources',
+            organizationId: organization.id,
+            isSystem: true,
+          },
+        });
+
+        // 6. Assign all CRM permissions to the admin role
+        const permissions = await tx.permission.findMany({
+          where: { code: { in: CRM_PERMISSION_CODES } },
+        });
+        await tx.rolePermission.createMany({
+          data: permissions.map((p: { id: string }) => ({
+            roleId: role.id,
+            permissionId: p.id,
+          })),
+        });
+
+        // 7. Assign the user to the admin role in this organization
+        const userRole = await tx.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: role.id,
+            organizationId: organization.id,
+            assignedBy: user.id,
+          },
+        });
+
+        // 8. Link the user to the organization (lock held, no race possible)
+        const updatedUser = await tx.user.update({
+          where: { id: user.id },
+          data: { organizationId: organization.id },
+        });
+
+        return { organization, role, userRole, user: updatedUser };
+      },
+      { maxWait: 5000, timeout: 10000 }
+    );
 
     return NextResponse.json({
       organization: {
