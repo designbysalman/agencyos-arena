@@ -305,7 +305,9 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
 
   // Make an authenticated fetch request with the captured session cookie
   const authFetch = (path: string, options: RequestInit = {}): Promise<Response> => {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      ...((options.headers as Record<string, string> | undefined) || {}),
+    };
     if (sessionCookie) {
       headers.Cookie = `better-auth.session_token=${sessionCookie}`;
     }
@@ -463,6 +465,8 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     // Logout using the authenticated session cookie
     const logoutRes = await authFetch('/api/auth/sign-out', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
     });
     expect(logoutRes.status).toBe(200);
 
