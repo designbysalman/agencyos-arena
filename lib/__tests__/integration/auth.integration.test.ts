@@ -511,19 +511,24 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
   });
 
   it('should redirect missing session to /login on protected /dashboard route', async () => {
-    // No session cookie at all
-    const res = await fetch(`${SERVER_URL}/dashboard`);
-    expect(res.status).toBe(302);
+    // No session cookie at all - use redirect: 'manual' to see the
+    // actual redirect response instead of having fetch follow it
+    const res = await fetch(`${SERVER_URL}/dashboard`, { redirect: 'manual' });
+    // Next.js middleware returns 302; server-component redirect() may
+    // return 307 during SSR. Accept either redirect status.
+    expect([302, 307]).toContain(res.status);
     expect(res.headers.get('Location')).toContain('/login');
   });
 
   it('should redirect forged session to /login on protected /dashboard route', async () => {
-    // Forged/invalid session cookie
+    // Forged/invalid session cookie - middleware allows the request
+    // (cookie present), but SessionValidator rejects it server-side
     const forgedCookie = 'forged-invalid-session-token-value';
     const res = await fetch(`${SERVER_URL}/dashboard`, {
       headers: { Cookie: `better-auth.session_token=${forgedCookie}` },
+      redirect: 'manual',
     });
-    expect(res.status).toBe(302);
+    expect([302, 307]).toContain(res.status);
     expect(res.headers.get('Location')).toContain('/login');
   });
 });
