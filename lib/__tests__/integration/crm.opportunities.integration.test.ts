@@ -182,8 +182,6 @@ describeIfDb('CRM Opportunities integration (real PostgreSQL)', () => {
         source: 'website',
         status: 'qualified',
         priority: 'high',
-        createdBy: testUserId,
-        updatedBy: testUserId,
       },
     });
     testLeadId = lead.id;
