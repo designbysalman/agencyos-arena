@@ -30,7 +30,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate --debug
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
       - run: npm run lint
@@ -59,7 +59,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate --debug
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
       - run: node_modules/.bin/prisma migrate deploy
@@ -82,7 +82,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: node_modules/.bin/prisma generate --debug
+      - run: node_modules/.bin/prisma generate
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
       - run: npm run build
