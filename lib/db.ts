@@ -1,16 +1,18 @@
 'use server';
 
-import * as PrismaModule from '@prisma/client';
+import { createRequire } from 'node:module';
 
-type PrismaClient = InstanceType<typeof PrismaModule.PrismaClient>;
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require('@prisma/client');
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prisma: any | undefined;
 };
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaModule.PrismaClient({
+  new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
   });
 
