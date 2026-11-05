@@ -74,6 +74,8 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
   let testUserId: string;
   let testOrgId: string;
   let testSessionToken: string;
+  let foreignUserId: string | null = null;
+  let foreignOrgId: string | null = null;
 
   // Track created records for cleanup
   const createdRecords: {
@@ -142,6 +144,13 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       await prisma.session.deleteMany({ where: { userId: testUserId } }).catch(() => {});
       await prisma.user.deleteMany({ where: { id: testUserId } }).catch(() => {});
     }
+    if (foreignUserId) {
+      await prisma.session.deleteMany({ where: { userId: foreignUserId } }).catch(() => {});
+      await prisma.user.deleteMany({ where: { id: foreignUserId } }).catch(() => {});
+    }
+    if (foreignOrgId) {
+      await prisma.organization.delete({ where: { id: foreignOrgId } }).catch(() => {});
+    }
     await prisma.$disconnect();
   });
 
@@ -204,23 +213,25 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       const pipeline = await pipelineRes.json();
       createdRecords.pipelines.push(pipeline.id);
 
-      // 4. Create a pipeline stage
-      const stageRes = await fetch(`${SERVER_URL}/api/v1/crm/pipeline-stages`, {
-        method: 'POST',
-        headers: {
-          Cookie: `better-auth.session_token=${testSessionToken}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          pipelineId: pipeline.id,
-          name: 'Qualified',
-          order: 1,
-          probability: 50,
-          isWon: false,
-          isLost: false,
-        }),
-      });
+      // 4. Create a pipeline stage (pipelineId via URL query parameter per API contract)
+      const stageRes = await fetch(
+        `${SERVER_URL}/api/v1/crm/pipeline-stages?pipelineId=${pipeline.id}`,
+        {
+          method: 'POST',
+          headers: {
+            Cookie: `better-auth.session_token=${testSessionToken}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            name: 'Qualified',
+            order: 1,
+            probability: 50,
+            isWon: false,
+            isLost: false,
+          }),
+        }
+      );
       expect(stageRes.status).toBe(201);
       const stage = await stageRes.json();
       createdRecords.stages.push(stage.id);
@@ -389,30 +400,81 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
     });
 
     it('returns 404 for cross-org lead conversion (IDOR protection)', async () => {
-      // Create a lead in a foreign org
+      // Create a foreign org user with a consistent email
+      const foreignEmail = `foreign-workflow-${Date.now()}${TEST_EMAIL_SUFFIX}`;
       const foreignOrgRes = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: `foreign-workflow-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          password: TEST_PASSWORD,
-        }),
+        body: JSON.stringify({ email: foreignEmail, password: TEST_PASSWORD }),
       });
       expect(foreignOrgRes.status).toBe(200);
 
       const foreignSignIn = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: foreignEmail, password: TEST_PASSWORD }),
+      });
+      expect(foreignSignIn.status).toBe(200);
+
+      const foreignSetCookie = foreignSignIn.headers.get('set-cookie') || '';
+      const foreignCookieMatch = foreignSetCookie.match(
+        /better-auth.session_token=([^;]+)/
+      );
+      const foreignToken = foreignCookieMatch ? foreignCookieMatch[1] : null;
+      expect(foreignToken).toBeTruthy();
+
+      // Bootstrap the foreign org
+      const foreignBootstrap = await fetch(
+        `${SERVER_URL}/api/auth/bootstrap-organization`,
+        {
+          method: 'POST',
+          headers: {
+            Cookie: `better-auth.session_token=${foreignToken}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({ organizationName: 'Foreign Workflow Org' }),
+        }
+      );
+      expect(foreignBootstrap.status).toBe(200);
+
+      // Capture foreign user/org for cleanup
+      const foreignUser = await prisma.user.findUnique({ where: { email: foreignEmail } });
+      foreignUserId = foreignUser?.id ?? null;
+      const foreignOrg = await prisma.organization.findFirst({
+        where: { userRoles: { some: { userId: foreignUserId! } } },
+      });
+      foreignOrgId = foreignOrg?.id ?? null;
+
+      // Create a lead in the primary org
+      const leadRes = await fetch(`${SERVER_URL}/api/v1/crm/leads`, {
+        method: 'POST',
+        headers: {
+          Cookie: `better-auth.session_token=${testSessionToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify({
-          email: `foreign-workflow-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          password: TEST_PASSWORD,
+          source: 'website',
+          status: 'new',
+          priority: 'medium',
         }),
       });
-      // Note: email changes each time, so sign-in may fail. Use a known email instead.
-      // This test just verifies that a lead created in the primary org can't be
-      // converted by a foreign org user - but creating a foreign user is complex.
-      // Instead, we test that a lead created directly in the DB with foreign org
-      // ID returns 404 when the primary user tries to convert it.
+      expect(leadRes.status).toBe(201);
+      const lead = await leadRes.json();
+      createdRecords.leads.push(lead.id);
+
+      // Foreign org user tries to convert the primary org's lead → non-disclosing 404
+      const res = await fetch(`${SERVER_URL}/api/v1/crm/leads/${lead.id}/convert`, {
+        method: 'POST',
+        headers: {
+          Cookie: `better-auth.session_token=${foreignToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ title: 'Foreign Convert' }),
+      });
+      expect(res.status).toBe(404);
     });
 
     it('returns 401 for unauthenticated conversion attempt', async () => {
@@ -426,6 +488,7 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
         body: JSON.stringify({
           source: 'test',
           status: 'new',
+          priority: 'medium',
         }),
       });
       expect(leadRes.status).toBe(201);
