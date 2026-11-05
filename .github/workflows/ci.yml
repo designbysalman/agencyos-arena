@@ -30,15 +30,12 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          for i in 1 2 3; do
-            node_modules/.bin/prisma generate && break
-            if [ $i -eq 3 ]; then exit 1; fi
-            echo "Prisma generate attempt $i failed, retrying in 5s..."
-            sleep 5
-          done
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -65,24 +62,26 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          for i in 1 2 3; do
-            node_modules/.bin/prisma generate && break
-            if [ $i -eq 3 ]; then exit 1; fi
-            echo "Prisma generate attempt $i failed, retrying in 5s..."
-            sleep 5
-          done
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: node_modules/.bin/prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-      - run: npm test
+      - run: npm test 2>&1 | tee test-output.log
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
           BETTER_AUTH_URL: "http://localhost:3000"
           NODE_ENV: "test"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-output-log
+          path: test-output.log
 
   build:
     runs-on: ubuntu-latest
@@ -94,13 +93,10 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: |
-          for i in 1 2 3; do
-            node_modules/.bin/prisma generate && break
-            if [ $i -eq 3 ]; then exit 1; fi
-            echo "Prisma generate attempt $i failed, retrying in 5s..."
-            sleep 5
-          done
-        env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - run: node_modules/.bin/prisma generate --debug 2>&1 | tee prisma-debug.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-debug-log
+          path: prisma-debug.log
       - run: npm run build
