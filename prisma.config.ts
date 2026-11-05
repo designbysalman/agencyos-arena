@@ -9,6 +9,4 @@ export default defineConfig({
   datasource: {
     url: env('DATABASE_URL'),
   },
-  // @ts-expect-error - shadowDatabaseUrl is a runtime property for Prisma migrate deploy
-  shadowDatabaseUrl: env('DATABASE_URL'),
 });
