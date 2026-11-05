@@ -495,6 +495,7 @@ CREATE TABLE "ProjectFile" (
     "projectId" TEXT NOT NULL,
     "taskId" TEXT,
     "fileAssetId" TEXT NOT NULL,
+    "userId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ProjectFile_pkey" PRIMARY KEY ("id")
@@ -814,6 +815,7 @@ ALTER TABLE "ProjectFile" ADD CONSTRAINT "ProjectFile_fileAssetId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "ProjectFile" ADD CONSTRAINT "ProjectFile_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ProjectFile" ADD CONSTRAINT "ProjectFile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ChangeOrder" ADD CONSTRAINT "ChangeOrder_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

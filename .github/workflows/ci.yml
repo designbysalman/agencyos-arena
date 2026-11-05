@@ -57,12 +57,22 @@ jobs:
           cache: "npm"
       - run: npm ci
 
+      - run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -p 5432 -U agencyos -d agencyos; then
+              echo "Database is ready"
+              break
+            fi
+            echo "Waiting for database... ($i/30)"
+            sleep 2
+          done
       - run: node_modules/.bin/prisma generate
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1 | tee prisma-migrate.log
+      - run: node_modules/.bin/prisma validate
+      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
