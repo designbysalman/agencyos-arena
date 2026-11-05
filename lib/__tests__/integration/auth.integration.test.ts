@@ -521,7 +521,8 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
 
   it('should reject forged session on protected /dashboard route', async () => {
     // Forged/invalid session cookie - middleware allows the request
-    // (cookie present), but SessionValidator rejects it server-side.
+    // (cookie present), but the dashboard server layout rejects it
+    // server-side via database-backed session validation.
     const forgedCookie = 'forged-invalid-session-token-value';
     const res = await fetch(`${SERVER_URL}/dashboard`, {
       headers: { Cookie: `better-auth.session_token=${forgedCookie}` },
