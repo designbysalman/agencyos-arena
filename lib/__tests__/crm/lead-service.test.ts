@@ -27,7 +27,7 @@ vi.mock('@/lib/db', () => ({
     agencyAccount: {
       findFirst: vi.fn(),
     },
-    userOrganization: {
+    userRole: {
       findFirst: vi.fn(),
     },
     auditLog: {
@@ -80,9 +80,7 @@ const mockLeadUpdate = prisma.lead.update as unknown as ReturnType<typeof vi.fn>
 const mockLeadCount = prisma.lead.count as unknown as ReturnType<typeof vi.fn>;
 const mockContactFindFirst = prisma.contact.findFirst as unknown as ReturnType<typeof vi.fn>;
 const mockAccountFindFirst = prisma.agencyAccount.findFirst as unknown as ReturnType<typeof vi.fn>;
-const mockUserOrgFindFirst = prisma.userOrganization.findFirst as unknown as ReturnType<
-  typeof vi.fn
->;
+const mockUserRoleFindFirst = prisma.userRole.findFirst as unknown as ReturnType<typeof vi.fn>;
 const mockAuditLogCreate = prisma.auditLog.create as unknown as ReturnType<typeof vi.fn>;
 const mockTransaction = prisma.$transaction as unknown as ReturnType<typeof vi.fn>;
 const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
@@ -389,7 +387,7 @@ describe('Lead service - createLead', () => {
   });
 
   it('validates owner membership when ownerId is provided', async () => {
-    mockUserOrgFindFirst.mockResolvedValue(null);
+    mockUserRoleFindFirst.mockResolvedValue(null);
 
     await expect(createLead({ ...createInput, ownerId: 'foreign_owner' })).rejects.toMatchObject({
       statusCode: 404,

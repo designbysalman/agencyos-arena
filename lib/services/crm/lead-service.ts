@@ -215,7 +215,7 @@ async function detectDuplicate(
 
 /** Validate owner membership within the organization */
 async function validateOwner(organizationId: string, ownerId: string) {
-  const membership = await prisma.userOrganization.findFirst({
+  const membership = await prisma.userRole.findFirst({
     where: { userId: ownerId, organizationId },
   });
   return !!membership;
