@@ -38,8 +38,22 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         name: data.name,
-        // Organization is created separately after sign-up
       });
+
+      // Bootstrap the user's organization after successful sign-up
+      const bootstrapRes = await fetch('/api/auth/bootstrap-organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ organizationName: data.organizationName }),
+      });
+
+      if (!bootstrapRes.ok) {
+        const errData = await bootstrapRes.json().catch(() => ({}));
+        setError(errData.error || 'Account created but organization setup failed');
+        return;
+      }
+
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
