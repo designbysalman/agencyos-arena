@@ -22,10 +22,9 @@ WHERE NOT EXISTS (
 );
 
 -- Backfill pipeline permissions to all existing Administrator/system roles.
--- Links both newly created and pre-existing permission records.
-INSERT INTO "RolePermission" ("id", "roleId", "permissionId", "grantedAt")
+-- RolePermission uses composite primary key (roleId, permissionId) -- no id column.
+INSERT INTO "RolePermission" ("roleId", "permissionId", "grantedAt")
 SELECT
-  md5(random()::text || clock_timestamp()::text || r.id || p.code) AS id,
   r.id,
   p.id,
   CURRENT_TIMESTAMP
