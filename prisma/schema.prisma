@@ -418,10 +418,15 @@ model Opportunity {
   pipelineId  String?
   stageId     String?
   title       String
+  description String?
   value       Decimal?
+  currency    String   @default("USD")
   closeDate   DateTime?
   ownerId     String?
   status      String   @default("open")
+  probability Decimal?
+  lossReason  String?
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
