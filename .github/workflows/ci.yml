@@ -109,3 +109,5 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run build
+        env:
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
