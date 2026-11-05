@@ -16,19 +16,19 @@
  * Requires DATABASE_URL and BETTER_AUTH_SECRET environment variables.
  * Requires a running Next.js dev server at http://localhost:3000 for HTTP tests.
  * Skips gracefully if no database is available.
+ * Fails if the HTTP server is unavailable when the database is available.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@/lib/db';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const canRunTests = !!DATABASE_URL;
 
 const SERVER_URL = 'http://localhost:3000';
-let canRunHttpTests = false;
 
 const describeIfDb = canRunTests ? describe : describe.skip;
-const describeIfHttp = canRunHttpTests ? describe : describe.skip;
+// HTTP describe blocks always run; beforeAll checks server readiness and fails if unavailable.
 
 const TEST_EMAIL_SUFFIX = '@crm-accounts-test.invalid';
 
@@ -40,6 +40,15 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
+
+    // Check HTTP server availability - fail if unavailable
+    const res = await fetch(`${SERVER_URL}/api/auth/session`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status !== 200 && res.status !== 401) {
+      throw new Error(`HTTP server unavailable: status ${res.status}`);
+    }
 
     // Create test organization
     const org = await prisma.organization.create({
@@ -104,20 +113,7 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
     await prisma.$disconnect();
   });
 
-  beforeEach(async () => {
-    // Check if HTTP server is available
-    try {
-      const res = await fetch(`${SERVER_URL}/api/auth/session`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      canRunHttpTests = res.status === 200 || res.status === 401;
-    } catch {
-      canRunHttpTests = false;
-    }
-  });
-
-  describeIfHttp('GET /api/v1/crm/accounts - List accounts', () => {
+  describe('GET /api/v1/crm/accounts - List accounts', () => {
     it('returns 401 without session', async () => {
       const res = await fetch(`${SERVER_URL}/api/v1/crm/accounts`, {
         headers: { Accept: 'application/json' },
@@ -181,7 +177,7 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('POST /api/v1/crm/accounts - Create account', () => {
+  describe('POST /api/v1/crm/accounts - Create account', () => {
     it('returns 401 without session', async () => {
       const res = await fetch(`${SERVER_URL}/api/v1/crm/accounts`, {
         method: 'POST',
@@ -233,7 +229,7 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('GET /api/v1/crm/accounts/[id] - Get single account', () => {
+  describe('GET /api/v1/crm/accounts/[id] - Get single account', () => {
     it('returns 404 for cross-org account (non-disclosing)', async () => {
       const foreignOrg = await prisma.organization.create({
         data: { name: 'Foreign Accounts Org', slug: 'foreign-accounts-org' },
@@ -275,10 +271,13 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('PUT /api/v1/crm/accounts/[id] - Update account', () => {
+  describe('PUT /api/v1/crm/accounts/[id] - Update account', () => {
     it('returns 404 for cross-org update (IDOR protection)', async () => {
       const foreignOrg = await prisma.organization.create({
-        data: { name: 'Foreign Accounts Org 2', slug: 'foreign-accounts-org-2' },
+        data: {
+          name: 'Foreign Accounts Org 2',
+          slug: 'foreign-accounts-org-2',
+        },
       });
       const foreignAccount = await prisma.agencyAccount.create({
         data: {
@@ -322,10 +321,13 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('DELETE /api/v1/crm/accounts/[id] - Soft delete account', () => {
+  describe('DELETE /api/v1/crm/accounts/[id] - Soft delete account', () => {
     it('returns 404 for cross-org delete', async () => {
       const foreignOrg = await prisma.organization.create({
-        data: { name: 'Foreign Accounts Org 3', slug: 'foreign-accounts-org-3' },
+        data: {
+          name: 'Foreign Accounts Org 3',
+          slug: 'foreign-accounts-org-3',
+        },
       });
       const foreignAccount = await prisma.agencyAccount.create({
         data: {

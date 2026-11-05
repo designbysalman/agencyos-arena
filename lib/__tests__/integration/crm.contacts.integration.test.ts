@@ -18,19 +18,19 @@
  * Requires DATABASE_URL and BETTER_AUTH_SECRET environment variables.
  * Requires a running Next.js dev server at http://localhost:3000 for HTTP tests.
  * Skips gracefully if no database is available.
+ * Fails if the HTTP server is unavailable when the database is available.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@/lib/db';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const canRunTests = !!DATABASE_URL;
 
 const SERVER_URL = 'http://localhost:3000';
-let canRunHttpTests = false;
 
 const describeIfDb = canRunTests ? describe : describe.skip;
-const describeIfHttp = canRunHttpTests ? describe : describe.skip;
+// HTTP describe blocks always run; beforeAll checks server readiness and fails if unavailable.
 
 const TEST_EMAIL_SUFFIX = '@crm-contacts-test.invalid';
 
@@ -43,6 +43,15 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
+
+    // Check HTTP server availability - fail if unavailable
+    const res = await fetch(`${SERVER_URL}/api/auth/session`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status !== 200 && res.status !== 401) {
+      throw new Error(`HTTP server unavailable: status ${res.status}`);
+    }
 
     // Create test organization
     const org = await prisma.organization.create({
@@ -121,20 +130,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     await prisma.$disconnect();
   });
 
-  beforeEach(async () => {
-    // Check if HTTP server is available
-    try {
-      const res = await fetch(`${SERVER_URL}/api/auth/session`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      canRunHttpTests = res.status === 200 || res.status === 401;
-    } catch {
-      canRunHttpTests = false;
-    }
-  });
-
-  describeIfHttp('GET /api/v1/crm/contacts - List contacts', () => {
+  describe('GET /api/v1/crm/contacts - List contacts', () => {
     it('returns 401 without session', async () => {
       const res = await fetch(`${SERVER_URL}/api/v1/crm/contacts`, {
         headers: { Accept: 'application/json' },
@@ -212,7 +208,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('POST /api/v1/crm/contacts - Create contact', () => {
+  describe('POST /api/v1/crm/contacts - Create contact', () => {
     it('returns 401 without session', async () => {
       const res = await fetch(`${SERVER_URL}/api/v1/crm/contacts`, {
         method: 'POST',
@@ -273,7 +269,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('GET /api/v1/crm/contacts/[id] - Get single contact', () => {
+  describe('GET /api/v1/crm/contacts/[id] - Get single contact', () => {
     it('returns 404 for cross-org contact (non-disclosing)', async () => {
       // Create a contact in a different org
       const foreignOrg = await prisma.organization.create({
@@ -317,7 +313,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('PUT /api/v1/crm/contacts/[id] - Update contact', () => {
+  describe('PUT /api/v1/crm/contacts/[id] - Update contact', () => {
     it('returns 404 for cross-org update (IDOR protection)', async () => {
       const foreignOrg = await prisma.organization.create({
         data: { name: 'Foreign Org 2', slug: 'foreign-org-2' },
@@ -365,7 +361,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     });
   });
 
-  describeIfHttp('DELETE /api/v1/crm/contacts/[id] - Soft delete contact', () => {
+  describe('DELETE /api/v1/crm/contacts/[id] - Soft delete contact', () => {
     it('returns 404 for cross-org delete', async () => {
       const foreignOrg = await prisma.organization.create({
         data: { name: 'Foreign Org 3', slug: 'foreign-org-3' },

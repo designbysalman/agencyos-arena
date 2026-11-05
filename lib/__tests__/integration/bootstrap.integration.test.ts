@@ -15,54 +15,60 @@
  * Requires DATABASE_URL and BETTER_AUTH_SECRET environment variables.
  * Requires a running Next.js dev server at http://localhost:3000 for HTTP tests.
  * Skips gracefully if no database is available.
+ * Fails if the HTTP server is unavailable when the database is available.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@/lib/db';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const canRunTests = !!DATABASE_URL;
 
 const SERVER_URL = 'http://localhost:3000';
-let canRunHttpTests = false;
 
 const describeIfDb = canRunTests ? describe : describe.skip;
-const describeIfHttp = canRunHttpTests ? describe : describe.skip;
+// HTTP describe blocks always run; beforeAll checks server readiness and fails if unavailable.
 
 const TEST_EMAIL_SUFFIX = '@bootstrap-test.invalid';
 
 describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
   beforeAll(async () => {
     await prisma.$connect();
+
+    // Check HTTP server availability - fail if unavailable
+    const res = await fetch(`${SERVER_URL}/api/auth/session`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (res.status !== 200 && res.status !== 401) {
+      throw new Error(`HTTP server unavailable: status ${res.status}`);
+    }
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
   });
 
-  beforeEach(async () => {
-    // Check if HTTP server is available
-    try {
-      const res = await fetch(`${SERVER_URL}/api/auth/session`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      canRunHttpTests = res.status === 200 || res.status === 401;
-    } catch {
-      canRunHttpTests = false;
-    }
-  });
-
-  describeIfHttp('POST /api/auth/bootstrap-organization', () => {
-    let bootstrapUserId: string;
-    let bootstrapSessionToken: string;
+  describe('POST /api/auth/bootstrap-organization', () => {
+    let bootstrapUserId: string | null;
+    let bootstrapSessionToken: string | null;
     let bootstrapOrgId: string | null;
 
     beforeEach(async () => {
-      // Clean up any previous test data
+      bootstrapUserId = null;
+      bootstrapSessionToken = null;
+      bootstrapOrgId = null;
+    });
+
+    afterEach(async () => {
+      // Clean up any test data created during the test
       if (bootstrapOrgId) {
-        await prisma.userRole.deleteMany({ where: { organizationId: bootstrapOrgId } });
-        await prisma.role.deleteMany({ where: { organizationId: bootstrapOrgId } });
+        await prisma.userRole.deleteMany({
+          where: { organizationId: bootstrapOrgId },
+        });
+        await prisma.role.deleteMany({
+          where: { organizationId: bootstrapOrgId },
+        });
         await prisma.permission.deleteMany({
           where: {
             code: {
@@ -79,15 +85,17 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
             },
           },
         });
-        await prisma.organizationAccount.deleteMany({ where: { organizationId: bootstrapOrgId } });
-        await prisma.agencyAccount.deleteMany({ where: { organizationId: bootstrapOrgId } });
+        await prisma.organizationAccount.deleteMany({
+          where: { organizationId: bootstrapOrgId },
+        });
+        await prisma.agencyAccount.deleteMany({
+          where: { organizationId: bootstrapOrgId },
+        });
         await prisma.organization.delete({ where: { id: bootstrapOrgId } });
-        bootstrapOrgId = null;
       }
       if (bootstrapUserId) {
         await prisma.session.deleteMany({ where: { userId: bootstrapUserId } });
         await prisma.user.delete({ where: { id: bootstrapUserId } });
-        bootstrapUserId = undefined as unknown as string;
       }
     });
 
@@ -179,22 +187,51 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
     });
 
     it('returns 409 on repeated bootstrap (idempotent)', async () => {
-      if (!bootstrapUserId || !bootstrapSessionToken || !bootstrapOrgId) {
-        // Skip if previous test didn't set up state
-        return;
-      }
+      // Create a test user without an organization
+      const user = await prisma.user.create({
+        data: {
+          email: `bootstrap-idempotent-${Date.now()}${TEST_EMAIL_SUFFIX}`,
+          name: 'Idempotent Bootstrap User',
+          password: 'hashed-placeholder',
+          organizationId: null,
+        },
+      });
+      bootstrapUserId = user.id;
 
-      const res = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
+      // Bootstrap once
+      const session1 = await prisma.session.create({
+        data: {
+          token: `bootstrap-idempotent-session-1-${Date.now()}`,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          userId: user.id,
+        },
+      });
+      bootstrapSessionToken = session1.token;
+
+      const firstRes = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
         headers: {
-          Cookie: `better-auth.session_token=${bootstrapSessionToken}`,
+          Cookie: `better-auth.session_token=${session1.token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ organizationName: 'Idempotent Org' }),
+      });
+      expect(firstRes.status).toBe(200);
+      const firstBody = await firstRes.json();
+      bootstrapOrgId = firstBody.organization.id;
+
+      // Attempt again - should return 409
+      const secondRes = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
+        method: 'POST',
+        headers: {
+          Cookie: `better-auth.session_token=${session1.token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
         body: JSON.stringify({ organizationName: 'Another Org' }),
       });
-
-      expect(res.status).toBe(409);
+      expect(secondRes.status).toBe(409);
     });
 
     it('allows only one concurrent bootstrap to succeed', async () => {
@@ -207,6 +244,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
           organizationId: null,
         },
       });
+      bootstrapUserId = user.id;
 
       const session = await prisma.session.create({
         data: {
@@ -215,14 +253,14 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
           userId: user.id,
         },
       });
-      const sessionToken = session.token;
+      bootstrapSessionToken = session.token;
 
       // Fire two concurrent bootstrap requests
       const results = await Promise.all([
         fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
           method: 'POST',
           headers: {
-            Cookie: `better-auth.session_token=${sessionToken}`,
+            Cookie: `better-auth.session_token=${session.token}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
@@ -231,7 +269,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
         fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
           method: 'POST',
           headers: {
-            Cookie: `better-auth.session_token=${sessionToken}`,
+            Cookie: `better-auth.session_token=${session.token}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
@@ -244,8 +282,17 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       expect(statuses.filter((s) => s === 200)).toHaveLength(1);
       expect(statuses.filter((s) => s === 409)).toHaveLength(1);
 
-      // Cleanup
-      await prisma.userRole.deleteMany({ where: { userId: user.id } });
+      // Find which org was created and set bootstrapOrgId for cleanup
+      const orgs = await prisma.organization.findMany({
+        where: {
+          userRoles: { some: { userId: user.id } },
+        },
+      });
+      if (orgs.length > 0) {
+        bootstrapOrgId = orgs[0].id;
+      }
+
+      // Cleanup user directly (afterEach will also try, but ids are null after)
       await prisma.session.deleteMany({ where: { userId: user.id } });
       await prisma.user.delete({ where: { id: user.id } });
     });
@@ -260,6 +307,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
           organizationId: null,
         },
       });
+      bootstrapUserId = user.id;
 
       const session = await prisma.session.create({
         data: {
@@ -268,6 +316,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
           userId: user.id,
         },
       });
+      bootstrapSessionToken = session.token;
 
       const res = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
@@ -280,10 +329,6 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       });
 
       expect(res.status).toBe(400);
-
-      // Cleanup
-      await prisma.session.deleteMany({ where: { userId: user.id } });
-      await prisma.user.delete({ where: { id: user.id } });
     });
   });
 });
