@@ -224,7 +224,8 @@ describeIfDb('Authentication integration', () => {
 });
 
 describe('Authentication integration (no database)', () => {
-  it('skips when DATABASE_URL is not available', () => {
-    expect(canRunTests).toBe(false);
+  it('correctly reports database availability', () => {
+    // canRunTests should be true when DATABASE_URL is set, false otherwise
+    expect(canRunTests).toBe(!!process.env.DATABASE_URL);
   });
 });
