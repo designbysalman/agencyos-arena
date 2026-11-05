@@ -86,7 +86,21 @@ jobs:
         with:
           name: prisma-migrate-log
           path: prisma-migrate.log
-      - run: set -o pipefail && npm test 2>&1 | tee test-output.log
+      - run: |
+          npm run dev &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/auth/session > /dev/null 2>&1; then
+              echo "Next.js server is ready"
+              break
+            fi
+            echo "Waiting for server... ($i/30)"
+            sleep 2
+          done
+          set -o pipefail && npm test 2>&1 | tee test-output.log
+          TEST_EXIT=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $TEST_EXIT
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
