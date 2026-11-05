@@ -68,9 +68,14 @@ jobs:
         with:
           name: prisma-debug-log
           path: prisma-debug.log
-      - run: node_modules/.bin/prisma migrate deploy
+      - run: node_modules/.bin/prisma migrate deploy 2>&1 | tee prisma-migrate.log
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-migrate-log
+          path: prisma-migrate.log
       - run: npm test
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
