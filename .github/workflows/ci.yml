@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main, arena/**, feature/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agencyos
+          POSTGRES_PASSWORD: agencyos_dev_password
+          POSTGRES_DB: agencyos
+        options: >-
+          --health-cmd "pg_isready -U agencyos -d agencyos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agencyos
+          POSTGRES_PASSWORD: agencyos_dev_password
+          POSTGRES_DB: agencyos
+        options: >-
+          --health-cmd "pg_isready -U agencyos -d agencyos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+
+      - run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -p 5432 -U agencyos -d agencyos; then
+              echo "Database is ready"
+              break
+            fi
+            echo "Waiting for database... ($i/30)"
+            sleep 2
+          done
+      - run: node_modules/.bin/prisma generate
+        env:
+          CHECKPOINT_DISABLE: "1"
+          PRISMA_HIDE_UPDATE_MESSAGE: "true"
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - run: node_modules/.bin/prisma validate
+        env:
+          CHECKPOINT_DISABLE: "1"
+          PRISMA_HIDE_UPDATE_MESSAGE: "true"
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public" 
+      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1
+        env:
+          CHECKPOINT_DISABLE: "1"
+          PRISMA_HIDE_UPDATE_MESSAGE: "true"
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prisma-migrate-log
+          path: prisma-migrate.log
+      - run: set -o pipefail && npm test 2>&1 | tee test-output.log
+        env:
+          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+          BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
+          BETTER_AUTH_URL: "http://localhost:3000"
+          NODE_ENV: "test"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-output-log
+          path: test-output.log
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
