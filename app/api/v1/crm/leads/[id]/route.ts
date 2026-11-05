@@ -20,7 +20,7 @@ import { deleteLead, getLead, updateLead } from '@/lib/services/crm/lead-service
 import { leadUpdateSchema } from '@/lib/schemas/crm/lead.schema';
 
 /** GET /api/v1/crm/leads/:id */
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const result = await auth.api.getSession({
@@ -31,7 +31,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     }
 
-    const lead = await getLead(params.id);
+    const { id } = await params;
+    const lead = await getLead(id);
     return NextResponse.json(lead);
   } catch (err) {
     const error = err as Error & { statusCode?: number };
@@ -49,7 +50,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 /** PATCH /api/v1/crm/leads/:id */
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const result = await auth.api.getSession({
@@ -71,9 +72,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const { searchParams } = new URL(request.url);
     const overrideDuplicate = searchParams.get('overrideDuplicate') === 'true';
+    const { id } = await params;
 
     try {
-      const lead = await updateLead(params.id, parsed.data, overrideDuplicate);
+      const lead = await updateLead(id, parsed.data, overrideDuplicate);
       return NextResponse.json(lead);
     } catch (err) {
       const error = err as Error & {
@@ -109,7 +111,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 /** DELETE /api/v1/crm/leads/:id */
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const result = await auth.api.getSession({
@@ -120,7 +122,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     }
 
-    const result_ = await deleteLead(params.id);
+    const { id } = await params;
+    const result_ = await deleteLead(id);
     return NextResponse.json(result_);
   } catch (err) {
     const error = err as Error & { statusCode?: number };
