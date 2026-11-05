@@ -23,6 +23,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contacts', href: '/crm/contacts', icon: Users },
+  { name: 'Pipelines', href: '/crm/pipelines', icon: LayoutDashboard },
   { name: 'Leads', href: '/crm/leads', icon: Briefcase },
   { name: 'Proposals', href: '/sales/proposals', icon: FileText },
   { name: 'Invoices', href: '/finance/invoices', icon: CreditCard },
