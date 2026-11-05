@@ -66,17 +66,17 @@ jobs:
             echo "Waiting for database... ($i/30)"
             sleep 2
           done
-      - run: npx prisma generate
+      - run: node_modules/.bin/prisma generate
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-      - run: npx prisma validate
+      - run: node_modules/.bin/prisma validate
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public" 
-      - run: set -o pipefail && npx prisma migrate deploy 2>&1
+      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
