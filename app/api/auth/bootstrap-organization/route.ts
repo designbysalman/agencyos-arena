@@ -153,11 +153,24 @@ export async function POST(request: Request) {
         },
       });
 
-      // 6. Link the user to the organization (conditional update for concurrency safety)
-      const updatedUser = await tx.user.update({
-        where: { id: user.id, organizationId: null },
-        data: { organizationId: organization.id },
-      });
+      // 6. Link the user to the organization (conditional update for concurrency safety).
+      // If another concurrent bootstrap already set organizationId, this update matches
+      // no rows and Prisma throws P2025. We convert that to a 409 (already bootstrapped).
+      let updatedUser;
+      try {
+        updatedUser = await tx.user.update({
+          where: { id: user.id, organizationId: null },
+          data: { organizationId: organization.id },
+        });
+      } catch (err) {
+        const prismaError = err as { code?: string };
+        if (prismaError.code === 'P2025') {
+          throw new Error('Organization already bootstrapped') as Error & {
+            statusCode: 409;
+          };
+        }
+        throw err;
+      }
 
       return { organization, role, userRole, user: updatedUser };
     });
