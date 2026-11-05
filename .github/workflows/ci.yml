@@ -104,4 +104,9 @@ jobs:
         with:
           name: prisma-debug-log
           path: prisma-debug.log
-      - run: npm run build
+      - run: npm run build 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: build.log
