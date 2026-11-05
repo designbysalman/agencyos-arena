@@ -113,9 +113,11 @@ export async function POST(request: Request) {
           select: { organizationId: true },
         });
         if (lockedUser?.organizationId) {
-          throw new Error('Organization already bootstrapped') as Error & {
-            statusCode: 409;
+          const err = new Error('Organization already bootstrapped') as Error & {
+            statusCode: number;
           };
+          err.statusCode = 409;
+          throw err;
         }
 
         // 3. Create the organization
