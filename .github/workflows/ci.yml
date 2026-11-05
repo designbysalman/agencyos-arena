@@ -76,7 +76,7 @@ jobs:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public" 
-      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1
+      - run: set -o pipefail && node_modules/.bin/prisma migrate deploy --debug 2>&1
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
