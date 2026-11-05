@@ -74,7 +74,6 @@ const mockPipelineUpdateMany = prisma.pipeline.updateMany as unknown as ReturnTy
 const mockPipelineCount = prisma.pipeline.count as unknown as ReturnType<typeof vi.fn>;
 const mockPipelineStageCount = prisma.pipelineStage.count as unknown as ReturnType<typeof vi.fn>;
 const mockAuditLogCreate = prisma.auditLog.create as unknown as ReturnType<typeof vi.fn>;
-const mockTransaction = prisma.$transaction as unknown as ReturnType<typeof vi.fn>;
 const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
 const mockCookies = cookies as unknown as ReturnType<typeof vi.fn>;
 const mockRequirePermission = requirePermission as unknown as ReturnType<typeof vi.fn>;
