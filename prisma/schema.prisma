@@ -357,11 +357,13 @@ model Lead {
   accountId   String?
   source      String
   status      String   @default("new")
+  priority    String?
   expectedValue Decimal?
   ownerId     String?
   pipelineId  String?
   stageId     String?
   notes       String?
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

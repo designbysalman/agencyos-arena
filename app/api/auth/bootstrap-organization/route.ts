@@ -40,6 +40,11 @@ const CRM_PERMISSION_CODES = [
   'pipeline.update',
   'pipeline.delete',
   'pipeline.stage.manage',
+  'lead.create',
+  'lead.read',
+  'lead.update',
+  'lead.delete',
+  'lead.assign',
 ];
 
 /** Validate session and return the authenticated user */
