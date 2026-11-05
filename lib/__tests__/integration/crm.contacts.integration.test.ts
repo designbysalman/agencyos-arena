@@ -19,6 +19,10 @@
  * Requires a running Next.js dev server at http://localhost:3000 for HTTP tests.
  * Skips gracefully if no database is available.
  * Fails if the HTTP server is unavailable when the database is available.
+ *
+ * Session tokens are obtained via real HTTP sign-up/sign-in flows (Better Auth
+ * manages session cookies as JWT tokens; manually inserted Prisma Session
+ * records do not produce valid cookies).
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -30,9 +34,45 @@ const canRunTests = !!DATABASE_URL;
 const SERVER_URL = 'http://localhost:3000';
 
 const describeIfDb = canRunTests ? describe : describe.skip;
-// HTTP describe blocks always run; beforeAll checks server readiness and fails if unavailable.
 
 const TEST_EMAIL_SUFFIX = '@crm-contacts-test.invalid';
+const TEST_PASSWORD = 'TestPassword123!';
+
+/** Register, sign in, and bootstrap an org for a test user. Returns session token, user, orgId. */
+async function createAuthenticatedUserWithOrg(email: string, name: string, orgName: string) {
+  await fetch(`${SERVER_URL}/api/auth/sign-up`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: TEST_PASSWORD, name }),
+  });
+
+  const signInRes = await fetch(`${SERVER_URL}/api/auth/sign-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: TEST_PASSWORD }),
+  });
+
+  const setCookie = signInRes.headers.get('set-cookie') || '';
+  const cookieMatch = setCookie.match(/better-auth.session_token=([^;]+)/);
+  const token = cookieMatch ? cookieMatch[1] : null;
+
+  const bootstrapRes = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
+    method: 'POST',
+    headers: {
+      Cookie: `better-auth.session_token=${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ organizationName: orgName }),
+  });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  const org = await prisma.organization.findFirst({
+    where: { userRoles: { some: { userId: user?.id ?? '' } } },
+  });
+
+  return { user, token, org, bootstrapRes };
+}
 
 describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
   let testUserId: string;
@@ -44,8 +84,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
   beforeAll(async () => {
     await prisma.$connect();
 
-    // Check HTTP server availability - fail if unavailable.
-    // Any HTTP response (including 401/404) proves the server is up.
     try {
       await fetch(`${SERVER_URL}/api/auth/session`, {
         method: 'GET',
@@ -55,41 +93,22 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       throw new Error(`HTTP server unavailable at ${SERVER_URL}`);
     }
 
-    // Create test organization
-    const org = await prisma.organization.create({
-      data: { name: 'CRM Test Org', slug: 'crm-test-org' },
-    });
-    testOrgId = org.id;
+    const email = `crm-contact-user-${Date.now()}${TEST_EMAIL_SUFFIX}`;
+    const { user, token, org } = await createAuthenticatedUserWithOrg(
+      email,
+      'CRM Contact User',
+      'CRM Test Org'
+    );
+    testUserId = user!.id;
+    testOrgId = org!.id;
+    testSessionToken = token!;
 
-    // Create test user with organization
-    const user = await prisma.user.create({
-      data: {
-        email: `crm-contact-user${TEST_EMAIL_SUFFIX}`,
-        name: 'CRM Contact User',
-        password: 'hashed-placeholder',
-        organizationId: testOrgId,
-      },
-    });
-    testUserId = user.id;
-
-    // Create session token
-    const session = await prisma.session.create({
-      data: {
-        token: 'crm-contact-test-session-token',
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        userId: testUserId,
-      },
-    });
-    testSessionToken = session.token;
-
-    // Create test account in same org
+    // Create test account in same org (AgencyAccount has no createdBy/updatedBy fields)
     const account = await prisma.agencyAccount.create({
       data: {
         organizationId: testOrgId,
         name: 'Test Client Account',
         status: 'active',
-        createdBy: testUserId,
-        updatedBy: testUserId,
       },
     });
     testAccountId = account.id;
@@ -112,7 +131,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data safely (guard against undefined IDs from partial setup)
     if (testContactId) {
       await prisma.contact.delete({ where: { id: testContactId } }).catch(() => {});
     }
@@ -125,7 +143,7 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     }
     if (testUserId) {
       await prisma.session.deleteMany({ where: { userId: testUserId } }).catch(() => {});
-      await prisma.user.delete({ where: { id: testUserId } }).catch(() => {});
+      await prisma.user.deleteMany({ where: { id: testUserId } }).catch(() => {});
     }
 
     await prisma.$disconnect();
@@ -184,7 +202,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
     });
 
     it('excludes soft-deleted contacts by default', async () => {
-      // Soft-delete the test contact
       await prisma.contact.update({
         where: { id: testContactId },
         data: { deletedAt: new Date() },
@@ -201,7 +218,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       const deletedContact = body.contacts.find((c: { id: string }) => c.id === testContactId);
       expect(deletedContact).toBeUndefined();
 
-      // Restore
       await prisma.contact.update({
         where: { id: testContactId },
         data: { deletedAt: null },
@@ -250,7 +266,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       expect(body.organizationId).toBe(testOrgId);
       expect(body.accountId).toBe(testAccountId);
 
-      // Cleanup
       await prisma.contact.delete({ where: { id: body.id } });
     });
 
@@ -272,7 +287,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
 
   describe('GET /api/v1/crm/contacts/[id] - Get single contact', () => {
     it('returns 404 for cross-org contact (non-disclosing)', async () => {
-      // Create a contact in a different org
       const foreignOrg = await prisma.organization.create({
         data: { name: 'Foreign Org', slug: 'foreign-org' },
       });
@@ -295,7 +309,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       });
       expect(res.status).toBe(404);
 
-      // Cleanup
       await prisma.contact.delete({ where: { id: foreignContact.id } });
       await prisma.organization.delete({ where: { id: foreignOrg.id } });
     });
@@ -341,7 +354,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       });
       expect(res.status).toBe(404);
 
-      // Cleanup
       await prisma.contact.delete({ where: { id: foreignContact.id } });
       await prisma.organization.delete({ where: { id: foreignOrg.id } });
     });
@@ -387,7 +399,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       });
       expect(res.status).toBe(404);
 
-      // Cleanup
       await prisma.contact.delete({ where: { id: foreignContact.id } });
       await prisma.organization.delete({ where: { id: foreignOrg.id } });
     });
@@ -404,7 +415,6 @@ describeIfDb('CRM Contacts integration (real PostgreSQL)', () => {
       const body = await res.json();
       expect(body.deletedAt).toBeDefined();
 
-      // Verify it's excluded from list
       const listRes = await fetch(`${SERVER_URL}/api/v1/crm/contacts`, {
         headers: {
           Cookie: `better-auth.session_token=${testSessionToken}`,

@@ -16,6 +16,10 @@
  * Requires a running Next.js dev server at http://localhost:3000 for HTTP tests.
  * Skips gracefully if no database is available.
  * Fails if the HTTP server is unavailable when the database is available.
+ *
+ * Session tokens are obtained via real HTTP sign-up/sign-in flows (Better Auth
+ * manages session cookies as JWT tokens; manually inserted Prisma Session
+ * records do not produce valid cookies).
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
@@ -27,16 +31,37 @@ const canRunTests = !!DATABASE_URL;
 const SERVER_URL = 'http://localhost:3000';
 
 const describeIfDb = canRunTests ? describe : describe.skip;
-// HTTP describe blocks always run; beforeAll checks server readiness and fails if unavailable.
 
 const TEST_EMAIL_SUFFIX = '@bootstrap-test.invalid';
+const TEST_PASSWORD = 'TestPassword123!';
+
+/** Register a user via HTTP and sign in, returning the Better Auth session token and user record */
+async function createAuthenticatedUser(email: string, name: string) {
+  await fetch(`${SERVER_URL}/api/auth/sign-up`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: TEST_PASSWORD, name }),
+  });
+
+  const signInRes = await fetch(`${SERVER_URL}/api/auth/sign-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: TEST_PASSWORD }),
+  });
+
+  const setCookie = signInRes.headers.get('set-cookie') || '';
+  const cookieMatch = setCookie.match(/better-auth.session_token=([^;]+)/);
+  const token = cookieMatch ? cookieMatch[1] : null;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  return { user, token, signInRes };
+}
 
 describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
   beforeAll(async () => {
     await prisma.$connect();
 
-    // Check HTTP server availability - fail if unavailable.
-    // Any HTTP response (including 401/404) proves the server is up.
     try {
       await fetch(`${SERVER_URL}/api/auth/session`, {
         method: 'GET',
@@ -53,40 +78,19 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
 
   describe('POST /api/auth/bootstrap-organization', () => {
     let bootstrapUserId: string | null;
-    let bootstrapSessionToken: string | null;
     let bootstrapOrgId: string | null;
 
     beforeEach(async () => {
       bootstrapUserId = null;
-      bootstrapSessionToken = null;
       bootstrapOrgId = null;
     });
 
     afterEach(async () => {
-      // Clean up any test data created during the test
       if (bootstrapOrgId) {
         await prisma.userRole
           .deleteMany({ where: { organizationId: bootstrapOrgId } })
           .catch(() => {});
         await prisma.role.deleteMany({ where: { organizationId: bootstrapOrgId } }).catch(() => {});
-        await prisma.permission
-          .deleteMany({
-            where: {
-              code: {
-                in: [
-                  'contact.create',
-                  'contact.read',
-                  'contact.update',
-                  'contact.delete',
-                  'account.create',
-                  'account.read',
-                  'account.update',
-                  'account.delete',
-                ],
-              },
-            },
-          })
-          .catch(() => {});
         await prisma.organizationAccount
           .deleteMany({ where: { organizationId: bootstrapOrgId } })
           .catch(() => {});
@@ -97,7 +101,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       }
       if (bootstrapUserId) {
         await prisma.session.deleteMany({ where: { userId: bootstrapUserId } }).catch(() => {});
-        await prisma.user.delete({ where: { id: bootstrapUserId } }).catch(() => {});
+        await prisma.user.deleteMany({ where: { id: bootstrapUserId } }).catch(() => {});
       }
     });
 
@@ -114,31 +118,17 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
     });
 
     it('creates an organization, assigns admin role with CRM permissions, and links user', async () => {
-      // Create a test user without an organization
-      const user = await prisma.user.create({
-        data: {
-          email: `bootstrap-user-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          name: 'Bootstrap Test User',
-          password: 'hashed-placeholder',
-          organizationId: null,
-        },
-      });
-      bootstrapUserId = user.id;
+      const email = `bootstrap-user-${Date.now()}${TEST_EMAIL_SUFFIX}`;
+      const { user, token } = await createAuthenticatedUser(email, 'Bootstrap Test User');
+      bootstrapUserId = user?.id ?? null;
 
-      // Create a session for the user
-      const session = await prisma.session.create({
-        data: {
-          token: `bootstrap-session-${Date.now()}`,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          userId: user.id,
-        },
-      });
-      bootstrapSessionToken = session.token;
+      expect(token).toBeTruthy();
+      expect(user).toBeDefined();
 
       const res = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
         headers: {
-          Cookie: `better-auth.session_token=${bootstrapSessionToken}`,
+          Cookie: `better-auth.session_token=${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -153,14 +143,12 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       expect(body.user.organizationId).toBe(body.organization.id);
       bootstrapOrgId = body.organization.id;
 
-      // Verify user is linked to the organization
       const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
+        where: { id: user!.id },
         select: { organizationId: true },
       });
       expect(updatedUser?.organizationId).toBe(body.organization.id);
 
-      // Verify CRM permissions exist and are assigned to the admin role
       const role = await prisma.role.findFirst({
         where: { organizationId: body.organization.id, isSystem: true },
         include: {
@@ -180,40 +168,22 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       expect(permissionCodes).toContain('account.update');
       expect(permissionCodes).toContain('account.delete');
 
-      // Verify user-role assignment
       const userRole = await prisma.userRole.findFirst({
-        where: { userId: user.id, organizationId: body.organization.id },
+        where: { userId: user!.id, organizationId: body.organization.id },
       });
       expect(userRole).toBeDefined();
       expect(userRole?.roleId).toBe(role?.id);
     });
 
     it('returns 409 on repeated bootstrap (idempotent)', async () => {
-      // Create a test user without an organization
-      const user = await prisma.user.create({
-        data: {
-          email: `bootstrap-idempotent-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          name: 'Idempotent Bootstrap User',
-          password: 'hashed-placeholder',
-          organizationId: null,
-        },
-      });
-      bootstrapUserId = user.id;
-
-      // Bootstrap once
-      const session1 = await prisma.session.create({
-        data: {
-          token: `bootstrap-idempotent-session-1-${Date.now()}`,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          userId: user.id,
-        },
-      });
-      bootstrapSessionToken = session1.token;
+      const email = `bootstrap-idempotent-${Date.now()}${TEST_EMAIL_SUFFIX}`;
+      const { user, token } = await createAuthenticatedUser(email, 'Idempotent Bootstrap User');
+      bootstrapUserId = user?.id ?? null;
 
       const firstRes = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
         headers: {
-          Cookie: `better-auth.session_token=${session1.token}`,
+          Cookie: `better-auth.session_token=${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -223,11 +193,10 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       const firstBody = await firstRes.json();
       bootstrapOrgId = firstBody.organization.id;
 
-      // Attempt again - should return 409
       const secondRes = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
         headers: {
-          Cookie: `better-auth.session_token=${session1.token}`,
+          Cookie: `better-auth.session_token=${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -237,32 +206,15 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
     });
 
     it('allows only one concurrent bootstrap to succeed', async () => {
-      // Create a fresh user without an organization
-      const user = await prisma.user.create({
-        data: {
-          email: `bootstrap-concurrent-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          name: 'Concurrent Bootstrap User',
-          password: 'hashed-placeholder',
-          organizationId: null,
-        },
-      });
-      bootstrapUserId = user.id;
+      const email = `bootstrap-concurrent-${Date.now()}${TEST_EMAIL_SUFFIX}`;
+      const { user, token } = await createAuthenticatedUser(email, 'Concurrent Bootstrap User');
+      bootstrapUserId = user?.id ?? null;
 
-      const session = await prisma.session.create({
-        data: {
-          token: `bootstrap-concurrent-session-${Date.now()}`,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          userId: user.id,
-        },
-      });
-      bootstrapSessionToken = session.token;
-
-      // Fire two concurrent bootstrap requests
       const results = await Promise.all([
         fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
           method: 'POST',
           headers: {
-            Cookie: `better-auth.session_token=${session.token}`,
+            Cookie: `better-auth.session_token=${token}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
@@ -271,7 +223,7 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
         fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
           method: 'POST',
           headers: {
-            Cookie: `better-auth.session_token=${session.token}`,
+            Cookie: `better-auth.session_token=${token}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
@@ -280,50 +232,31 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       ]);
 
       const statuses = results.map((r) => r.status);
-      // Exactly one should succeed (200), the other should get 409
       expect(statuses.filter((s) => s === 200)).toHaveLength(1);
       expect(statuses.filter((s) => s === 409)).toHaveLength(1);
 
-      // Find which org was created and set bootstrapOrgId for cleanup
       const orgs = await prisma.organization.findMany({
         where: {
-          userRoles: { some: { userId: user.id } },
+          userRoles: { some: { userId: user!.id } },
         },
       });
       if (orgs.length > 0) {
         bootstrapOrgId = orgs[0].id;
       }
 
-      // Cleanup user directly (afterEach will also try, but ids are null after)
-      await prisma.session.deleteMany({ where: { userId: user.id } });
-      await prisma.user.delete({ where: { id: user.id } });
+      await prisma.session.deleteMany({ where: { userId: user!.id } }).catch(() => {});
+      await prisma.user.deleteMany({ where: { id: user!.id } }).catch(() => {});
     });
 
     it('returns 400 for invalid request body', async () => {
-      // Create a test user without an organization
-      const user = await prisma.user.create({
-        data: {
-          email: `bootstrap-invalid-${Date.now()}${TEST_EMAIL_SUFFIX}`,
-          name: 'Invalid Bootstrap User',
-          password: 'hashed-placeholder',
-          organizationId: null,
-        },
-      });
-      bootstrapUserId = user.id;
-
-      const session = await prisma.session.create({
-        data: {
-          token: `bootstrap-invalid-session-${Date.now()}`,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          userId: user.id,
-        },
-      });
-      bootstrapSessionToken = session.token;
+      const email = `bootstrap-invalid-${Date.now()}${TEST_EMAIL_SUFFIX}`;
+      const { user, token } = await createAuthenticatedUser(email, 'Invalid Bootstrap User');
+      bootstrapUserId = user?.id ?? null;
 
       const res = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
         method: 'POST',
         headers: {
-          Cookie: `better-auth.session_token=${session.token}`,
+          Cookie: `better-auth.session_token=${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -331,6 +264,9 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
       });
 
       expect(res.status).toBe(400);
+
+      await prisma.session.deleteMany({ where: { userId: user!.id } }).catch(() => {});
+      await prisma.user.deleteMany({ where: { id: user!.id } }).catch(() => {});
     });
   });
 });
