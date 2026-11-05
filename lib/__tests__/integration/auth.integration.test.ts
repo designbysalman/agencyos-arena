@@ -242,73 +242,73 @@ describeIfDb('Authentication integration (real PostgreSQL)', () => {
     const session = await prisma.session.findFirst({
       where: { userId: 'nonexistent-user-id' },
     });
-
-    it('should register a user through the Better Auth HTTP endpoint', async () => {
-      const res = await fetch('http://localhost:3000/api/auth/sign-up/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'http-register@test-agencyos.invalid',
-          password: 'test-password-123',
-          name: 'HTTP Register Test',
-        }),
-      });
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.user.email).toBe('http-register@test-agencyos.invalid');
-      expect(body.user.id).toBeDefined();
-
-      // Verify user was created in DB
-      const user = await prisma.user.findUnique({
-        where: { email: 'http-register@test-agencyos.invalid' },
-      });
-      expect(user).not.toBeNull();
-      expect(user?.email).toBe('http-register@test-agencyos.invalid');
-
-      // Cleanup
-      await prisma.user.delete({ where: { id: user!.id } });
-    });
-
-    it('should login through the Better Auth HTTP endpoint and receive a session', async () => {
-      // First register a user directly in DB with a known password hash
-      const testUser = await prisma.user.create({
-        data: {
-          email: 'http-login@test-agencyos.invalid',
-          name: 'HTTP Login Test',
-          password: '$2b$10$placeholder.hash.for.testing',
-          organizationId: null,
-        },
-      });
-
-      const res = await fetch('http://localhost:3000/api/auth/sign-in/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'http-login@test-agencyos.invalid',
-          password: 'test-password-123',
-        }),
-      });
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.session.token).toBeDefined();
-      expect(body.session.userId).toBe(testUser.id);
-
-      // Cleanup
-      await prisma.user.delete({ where: { id: testUser.id } });
-    });
-
-    it('should reject invalid credentials through the Better Auth HTTP endpoint', async () => {
-      const res = await fetch('http://localhost:3000/api/auth/sign-in/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'nonexistent@test-agencyos.invalid',
-          password: 'wrong-password',
-        }),
-      });
-      expect(res.status).not.toBe(200);
-    });
     expect(session).toBeNull();
+  });
+
+  it('should register a user through the Better Auth HTTP endpoint', async () => {
+    const res = await fetch('http://localhost:3000/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'http-register@test-agencyos.invalid',
+        password: 'test-password-123',
+        name: 'HTTP Register Test',
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.user.email).toBe('http-register@test-agencyos.invalid');
+    expect(body.user.id).toBeDefined();
+
+    // Verify user was created in DB
+    const user = await prisma.user.findUnique({
+      where: { email: 'http-register@test-agencyos.invalid' },
+    });
+    expect(user).not.toBeNull();
+    expect(user?.email).toBe('http-register@test-agencyos.invalid');
+
+    // Cleanup
+    await prisma.user.delete({ where: { id: user!.id } });
+  });
+
+  it('should login through the Better Auth HTTP endpoint and receive a session', async () => {
+    // First register a user directly in DB with a known password hash
+    const testUser = await prisma.user.create({
+      data: {
+        email: 'http-login@test-agencyos.invalid',
+        name: 'HTTP Login Test',
+        password: '$2b$10$placeholder.hash.for.testing',
+        organizationId: null,
+      },
+    });
+
+    const res = await fetch('http://localhost:3000/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'http-login@test-agencyos.invalid',
+        password: 'test-password-123',
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.session.token).toBeDefined();
+    expect(body.session.userId).toBe(testUser.id);
+
+    // Cleanup
+    await prisma.user.delete({ where: { id: testUser.id } });
+  });
+
+  it('should reject invalid credentials through the Better Auth HTTP endpoint', async () => {
+    const res = await fetch('http://localhost:3000/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'nonexistent@test-agencyos.invalid',
+        password: 'wrong-password',
+      }),
+    });
+    expect(res.status).not.toBe(200);
   });
 });
 
