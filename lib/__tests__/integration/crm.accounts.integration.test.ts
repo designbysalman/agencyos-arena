@@ -38,17 +38,19 @@ const TEST_PASSWORD = 'TestPassword123!';
 
 /** Register, sign in, and bootstrap an org for a test user. Returns session token, user, orgId. */
 async function createAuthenticatedUserWithOrg(email: string, name: string, orgName: string) {
-  await fetch(`${SERVER_URL}/api/auth/sign-up`, {
+  const signUpRes = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: TEST_PASSWORD, name }),
   });
+  expect(signUpRes.status).toBe(200);
 
-  const signInRes = await fetch(`${SERVER_URL}/api/auth/sign-in`, {
+  const signInRes = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: TEST_PASSWORD }),
   });
+  expect(signInRes.status).toBe(200);
 
   const setCookie = signInRes.headers.get('set-cookie') || '';
   const cookieMatch = setCookie.match(/better-auth.session_token=([^;]+)/);
