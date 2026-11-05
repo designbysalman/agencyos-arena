@@ -34,7 +34,6 @@ export interface OpportunityResponse {
   lead: { id: string; source: string; status: string } | null;
   pipeline: { id: string; name: string } | null;
   stage: { id: string; name: string; isWon: boolean; isLost: boolean } | null;
-  owner: { id: string; name: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -192,7 +191,6 @@ function serializeOpportunity(
           isLost: opp.stage.isLost,
         }
       : null,
-    owner: opp.owner ? { id: opp.owner.id, name: opp.owner.name } : null,
     createdAt: opp.createdAt,
     updatedAt: opp.updatedAt,
   };
@@ -225,7 +223,6 @@ export async function listOpportunities(input: OpportunityQueryInput) {
         lead: { select: { id: true, source: true, status: true } },
         pipeline: { select: { id: true, name: true } },
         stage: { select: { id: true, name: true, isWon: true, isLost: true } },
-        owner: { select: { id: true, name: true } },
       },
     }),
     prisma.opportunity.count({ where }),
@@ -328,7 +325,6 @@ export async function getOpportunity(id: string) {
       lead: { select: { id: true, source: true, status: true, expectedValue: true } },
       pipeline: { select: { id: true, name: true } },
       stage: { select: { id: true, name: true, isWon: true, isLost: true, pipelineId: true } },
-      owner: { select: { id: true, name: true, email: true } },
     },
   });
 
