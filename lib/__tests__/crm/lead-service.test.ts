@@ -146,8 +146,6 @@ describe('Lead service - listLeads', () => {
         stageId: null,
         notes: null,
         deletedAt: null,
-        createdBy: userId,
-        updatedBy: userId,
         createdAt: new Date(),
         updatedAt: new Date(),
         contact: null,
@@ -245,8 +243,6 @@ describe('Lead service - getLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
       createdAt: new Date(),
       updatedAt: new Date(),
       contact: null,
@@ -336,8 +332,6 @@ describe('Lead service - createLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
 
@@ -351,7 +345,6 @@ describe('Lead service - createLead', () => {
           status: 'new',
           priority: 'high',
           expectedValue: 5000,
-          createdBy: userId,
         }),
       })
     );
@@ -383,8 +376,6 @@ describe('Lead service - createLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
 
@@ -452,8 +443,6 @@ describe('Lead service - updateLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     };
     // 1st findFirst: existence check → returns existing lead
     // 2nd findFirst: duplicate detection → returns null (no duplicate)
@@ -474,8 +463,6 @@ describe('Lead service - updateLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
 
@@ -507,8 +494,6 @@ describe('Lead service - updateLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockRequirePermission.mockRejectedValueOnce(
       Object.assign(new Error('Forbidden: insufficient permissions'), {
@@ -537,14 +522,11 @@ describe('Lead service - deleteLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockLeadUpdate.mockResolvedValue({
       id: leadId,
       organizationId: orgId,
       deletedAt: new Date(),
-      updatedBy: userId,
     });
     mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
 
@@ -582,8 +564,6 @@ describe('Lead service - deleteLead', () => {
       stageId: null,
       notes: null,
       deletedAt: null,
-      createdBy: userId,
-      updatedBy: userId,
     });
     mockRequirePermission.mockRejectedValueOnce(
       Object.assign(new Error('Forbidden: insufficient permissions'), {

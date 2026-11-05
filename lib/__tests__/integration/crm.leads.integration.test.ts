@@ -115,11 +115,7 @@ describeIfDb('CRM Leads integration (real PostgreSQL)', () => {
 
     // Foreign user + org (for IDOR / cross-org tests)
     const foreignEmail = `crm-lead-foreign-${Date.now()}${TEST_EMAIL_SUFFIX}`;
-    const {
-      user: foreignUser,
-      token: foreignToken,
-      org: foreignOrg,
-    } = await createAuthenticatedUserWithOrg(
+    const { token: foreignToken, org: foreignOrg } = await createAuthenticatedUserWithOrg(
       foreignEmail,
       'CRM Lead Foreign User',
       'CRM Lead Foreign Org'
@@ -425,8 +421,6 @@ describeIfDb('CRM Leads integration (real PostgreSQL)', () => {
           source: 'website',
           status: 'new',
           priority: 'medium',
-          createdBy: testUserId,
-          updatedBy: testUserId,
         },
       });
 
@@ -465,8 +459,6 @@ describeIfDb('CRM Leads integration (real PostgreSQL)', () => {
           source: 'website',
           status: 'new',
           priority: 'medium',
-          createdBy: testUserId,
-          updatedBy: testUserId,
         },
       });
 
@@ -509,8 +501,6 @@ describeIfDb('CRM Leads integration (real PostgreSQL)', () => {
           source: 'website',
           status: 'new',
           priority: 'medium',
-          createdBy: testUserId,
-          updatedBy: testUserId,
         },
       });
 

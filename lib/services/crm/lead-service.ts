@@ -25,8 +25,6 @@ export interface LeadResponse {
   notes: string | null;
   isDuplicate: boolean;
   duplicateId: string | null;
-  createdBy: string | null;
-  updatedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -182,8 +180,6 @@ function serializeLead(
     notes: lead.notes,
     isDuplicate,
     duplicateId,
-    createdBy: lead.createdBy,
-    updatedBy: lead.updatedBy,
     createdAt: lead.createdAt,
     updatedAt: lead.updatedAt,
     deletedAt: lead.deletedAt,
@@ -377,8 +373,6 @@ export async function createLead(input: LeadCreateInput, overrideDuplicate = fal
       pipelineId: input.pipelineId ?? null,
       stageId: input.stageId ?? null,
       notes: input.notes ?? null,
-      createdBy: userId,
-      updatedBy: userId,
     },
   });
 
@@ -504,7 +498,6 @@ export async function updateLead(id: string, input: LeadUpdateInput, overrideDup
       pipelineId: input.pipelineId ?? existing.pipelineId,
       stageId: input.stageId ?? existing.stageId,
       notes: input.notes ?? existing.notes,
-      updatedBy: userId,
     },
   });
 
@@ -561,7 +554,6 @@ export async function deleteLead(id: string) {
     where: { id },
     data: {
       deletedAt: new Date(),
-      updatedBy: userId,
     },
   });
 
