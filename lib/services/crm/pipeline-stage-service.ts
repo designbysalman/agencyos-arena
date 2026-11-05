@@ -26,6 +26,22 @@ export interface PipelineStageResponse {
   updatedAt: Date;
 }
 
+/** PipelineStage with the pipeline relation included (matches findMany include) */
+type PipelineStageWithPipeline = {
+  id: string;
+  pipelineId: string;
+  name: string;
+  order: number;
+  color: string | null;
+  probability: number | null;
+  isWon: boolean;
+  isLost: boolean;
+  pipeline: { id: string; name: string } | null;
+  deletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 /** Validate session and resolve authorized user context */
 async function getAuthorizedUser(): Promise<AuthorizedUser> {
   const cookieStore = await cookies();
@@ -96,20 +112,7 @@ async function createAuditLog({
 
 /** Serialize a pipeline stage */
 function serializePipelineStage(
-  stage: {
-    id: string;
-    pipelineId: string;
-    name: string;
-    order: number;
-    color: string | null;
-    probability: number | null;
-    isWon: boolean;
-    isLost: boolean;
-    pipeline: { id: string; name: string } | null;
-    deletedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }
+  stage: PipelineStageWithPipeline
 ): PipelineStageResponse {
   return {
     id: stage.id,
@@ -179,7 +182,9 @@ export async function listPipelineStages(
   ]);
 
   return {
-    stages: stages.map((s) => serializePipelineStage(s as { pipeline: { id: string; name: string } | null })),
+    stages: stages.map((s: PipelineStageWithPipeline) =>
+      serializePipelineStage(s)
+    ),
     total,
     page: input.page,
     pageSize: input.pageSize,
@@ -197,6 +202,11 @@ export async function getPipelineStage(id: string) {
     where: {
       id,
       pipeline: { organizationId },
+    },
+    include: {
+      pipeline: {
+        select: { id: true, name: true },
+      },
     },
   });
 
