@@ -251,7 +251,6 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
           status: 'qualified',
           priority: 'high',
           expectedValue: '100000.00',
-          ownerId: testUserId,
           pipelineId: pipeline.id,
           stageId: stage.id,
           notes: 'Workflow test lead',
@@ -405,7 +404,11 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       const foreignOrgRes = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: foreignEmail, password: TEST_PASSWORD }),
+        body: JSON.stringify({
+          email: foreignEmail,
+          password: TEST_PASSWORD,
+          name: 'Foreign Workflow User',
+        }),
       });
       expect(foreignOrgRes.status).toBe(200);
 
@@ -478,21 +481,14 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
     });
 
     it('returns 401 for unauthenticated conversion attempt', async () => {
-      const leadRes = await fetch(`${SERVER_URL}/api/v1/crm/leads`, {
-        method: 'POST',
-        headers: {
-          Cookie: `better-auth.session_token=${testSessionToken}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          source: 'test',
+      // Create lead directly via Prisma to avoid API duplicate detection
+      const lead = await prisma.lead.create({
+        data: {
+          organizationId: testOrgId,
+          source: 'unauth-test',
           status: 'new',
-          priority: 'medium',
-        }),
+        },
       });
-      expect(leadRes.status).toBe(201);
-      const lead = await leadRes.json();
       createdRecords.leads.push(lead.id);
 
       const res = await fetch(`${SERVER_URL}/api/v1/crm/leads/${lead.id}/convert`, {
