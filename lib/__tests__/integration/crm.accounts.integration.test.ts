@@ -41,13 +41,15 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
   beforeAll(async () => {
     await prisma.$connect();
 
-    // Check HTTP server availability - fail if unavailable
-    const res = await fetch(`${SERVER_URL}/api/auth/session`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-    if (res.status !== 200 && res.status !== 401) {
-      throw new Error(`HTTP server unavailable: status ${res.status}`);
+    // Check HTTP server availability - fail if unavailable.
+    // Any HTTP response (including 401/404) proves the server is up.
+    try {
+      await fetch(`${SERVER_URL}/api/auth/session`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+    } catch {
+      throw new Error(`HTTP server unavailable at ${SERVER_URL}`);
     }
 
     // Create test organization
@@ -93,22 +95,21 @@ describeIfDb('CRM Accounts integration (real PostgreSQL)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.contact.deleteMany({
-      where: { organizationId: testOrgId },
-    });
-    await prisma.agencyAccount.deleteMany({
-      where: { organizationId: testOrgId },
-    });
-    await prisma.session.deleteMany({
-      where: { userId: testUserId },
-    });
-    await prisma.user.delete({
-      where: { id: testUserId },
-    });
-    await prisma.organization.delete({
-      where: { id: testOrgId },
-    });
+    // Clean up test data safely (guard against undefined IDs from partial setup)
+    if (testAccountId) {
+      await prisma.agencyAccount.delete({ where: { id: testAccountId } }).catch(() => {});
+    }
+    if (testOrgId) {
+      await prisma.contact.deleteMany({ where: { organizationId: testOrgId } }).catch(() => {});
+      await prisma.agencyAccount
+        .deleteMany({ where: { organizationId: testOrgId } })
+        .catch(() => {});
+      await prisma.organization.delete({ where: { id: testOrgId } }).catch(() => {});
+    }
+    if (testUserId) {
+      await prisma.session.deleteMany({ where: { userId: testUserId } }).catch(() => {});
+      await prisma.user.delete({ where: { id: testUserId } }).catch(() => {});
+    }
 
     await prisma.$disconnect();
   });

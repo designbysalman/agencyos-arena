@@ -35,13 +35,15 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
   beforeAll(async () => {
     await prisma.$connect();
 
-    // Check HTTP server availability - fail if unavailable
-    const res = await fetch(`${SERVER_URL}/api/auth/session`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-    if (res.status !== 200 && res.status !== 401) {
-      throw new Error(`HTTP server unavailable: status ${res.status}`);
+    // Check HTTP server availability - fail if unavailable.
+    // Any HTTP response (including 401/404) proves the server is up.
+    try {
+      await fetch(`${SERVER_URL}/api/auth/session`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+    } catch {
+      throw new Error(`HTTP server unavailable at ${SERVER_URL}`);
     }
   });
 
@@ -63,39 +65,39 @@ describeIfDb('Organization Bootstrap integration (real PostgreSQL)', () => {
     afterEach(async () => {
       // Clean up any test data created during the test
       if (bootstrapOrgId) {
-        await prisma.userRole.deleteMany({
-          where: { organizationId: bootstrapOrgId },
-        });
-        await prisma.role.deleteMany({
-          where: { organizationId: bootstrapOrgId },
-        });
-        await prisma.permission.deleteMany({
-          where: {
-            code: {
-              in: [
-                'contact.create',
-                'contact.read',
-                'contact.update',
-                'contact.delete',
-                'account.create',
-                'account.read',
-                'account.update',
-                'account.delete',
-              ],
+        await prisma.userRole
+          .deleteMany({ where: { organizationId: bootstrapOrgId } })
+          .catch(() => {});
+        await prisma.role.deleteMany({ where: { organizationId: bootstrapOrgId } }).catch(() => {});
+        await prisma.permission
+          .deleteMany({
+            where: {
+              code: {
+                in: [
+                  'contact.create',
+                  'contact.read',
+                  'contact.update',
+                  'contact.delete',
+                  'account.create',
+                  'account.read',
+                  'account.update',
+                  'account.delete',
+                ],
+              },
             },
-          },
-        });
-        await prisma.organizationAccount.deleteMany({
-          where: { organizationId: bootstrapOrgId },
-        });
-        await prisma.agencyAccount.deleteMany({
-          where: { organizationId: bootstrapOrgId },
-        });
-        await prisma.organization.delete({ where: { id: bootstrapOrgId } });
+          })
+          .catch(() => {});
+        await prisma.organizationAccount
+          .deleteMany({ where: { organizationId: bootstrapOrgId } })
+          .catch(() => {});
+        await prisma.agencyAccount
+          .deleteMany({ where: { organizationId: bootstrapOrgId } })
+          .catch(() => {});
+        await prisma.organization.delete({ where: { id: bootstrapOrgId } }).catch(() => {});
       }
       if (bootstrapUserId) {
-        await prisma.session.deleteMany({ where: { userId: bootstrapUserId } });
-        await prisma.user.delete({ where: { id: bootstrapUserId } });
+        await prisma.session.deleteMany({ where: { userId: bootstrapUserId } }).catch(() => {});
+        await prisma.user.delete({ where: { id: bootstrapUserId } }).catch(() => {});
       }
     });
 
