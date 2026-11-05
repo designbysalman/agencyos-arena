@@ -55,10 +55,10 @@ async function getAuthenticatedUser() {
   return result.user as { id: string; email: string | null; organizationId?: string };
 }
 
-/** Ensure CRM permissions exist in the database */
-async function ensureCrmPermissions() {
+/** Ensure CRM permissions exist in the database using the transaction client */
+async function ensureCrmPermissions(tx: typeof prisma) {
   for (const code of CRM_PERMISSION_CODES) {
-    await prisma.permission.upsert({
+    await tx.permission.upsert({
       where: { code },
       update: {},
       create: {
@@ -112,8 +112,8 @@ export async function POST(request: Request) {
         },
       });
 
-      // 2. Ensure CRM permissions exist
-      await ensureCrmPermissions();
+      // 2. Ensure CRM permissions exist (using transaction client)
+      await ensureCrmPermissions(tx);
 
       // 3. Create an admin role for this organization
       const role = await tx.role.create({

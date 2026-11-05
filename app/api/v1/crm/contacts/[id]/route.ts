@@ -40,9 +40,10 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
 }
 
 /** GET /api/v1/crm/contacts/[id] - Get contact by ID */
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const contact = await getContact(params.id);
+    const { id } = await params;
+    const contact = await getContact(id);
     return NextResponse.json(contact);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
@@ -54,15 +55,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 /** PUT /api/v1/crm/contacts/[id] - Update contact */
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const parsed = await parseBody<ContactUpdateInput>(request, contactUpdateSchema);
 
     if (!parsed.success) {
       return errorResponse('Invalid request body', 400, parsed.error.issues);
     }
 
-    const contact = await updateContact(params.id, parsed.data);
+    const contact = await updateContact(id, parsed.data);
     return NextResponse.json(contact);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
@@ -74,9 +76,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 /** DELETE /api/v1/crm/contacts/[id] - Soft delete contact */
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const result = await deleteContact(params.id);
+    const { id } = await params;
+    const result = await deleteContact(id);
     return NextResponse.json(result);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
