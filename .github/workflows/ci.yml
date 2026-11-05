@@ -76,12 +76,20 @@ jobs:
         with:
           name: prisma-migrate-log
           path: prisma-migrate.log
-      - run: npm test
+      - run: |
+    npm test 2>&1 | tee test-output.log
+    TEST_EXIT_CODE=${PIPESTATUS[0]}
+    exit $TEST_EXIT_CODE
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
           BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
           BETTER_AUTH_URL: "http://localhost:3000"
           NODE_ENV: "test"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-output-log
+          path: test-output.log
 
   build:
     runs-on: ubuntu-latest
