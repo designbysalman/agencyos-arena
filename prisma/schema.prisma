@@ -153,6 +153,7 @@ model AgencyAccount {
   website     String?
   address     String?
   status      String   @default("active")
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -321,6 +322,7 @@ model Contact {
   isMasked    Boolean  @default(false)
   status      String   @default("active")
   source      String?
+  deletedAt   DateTime?
   createdBy   String?
   updatedBy   String?
   createdAt   DateTime @default(now())
