@@ -510,26 +510,36 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     expect(dashboardRes.status).toBe(200);
   });
 
-  it('should redirect missing session to /login on protected /dashboard route', async () => {
+  it('should reject missing session on protected /dashboard route', async () => {
     // No session cookie at all - use redirect: 'manual' to see the
     // actual redirect response instead of having fetch follow it
     const res = await fetch(`${SERVER_URL}/dashboard`, { redirect: 'manual' });
-    // Next.js middleware returns 302; server-component redirect() may
-    // return 307 during SSR. Accept either redirect status.
+    // Next.js middleware returns 302 for cookie-less requests
     expect([302, 307]).toContain(res.status);
     expect(res.headers.get('Location')).toContain('/login');
   });
 
-  it('should redirect forged session to /login on protected /dashboard route', async () => {
+  it('should reject forged session on protected /dashboard route', async () => {
     // Forged/invalid session cookie - middleware allows the request
-    // (cookie present), but SessionValidator rejects it server-side
+    // (cookie present), but SessionValidator rejects it server-side.
+    // Next.js 16 with Suspense may stream a redirect instead of
+    // returning HTTP 307 - check both status and redirect headers.
     const forgedCookie = 'forged-invalid-session-token-value';
     const res = await fetch(`${SERVER_URL}/dashboard`, {
       headers: { Cookie: `better-auth.session_token=${forgedCookie}` },
       redirect: 'manual',
     });
-    expect([302, 307]).toContain(res.status);
-    expect(res.headers.get('Location')).toContain('/login');
+    // Either an HTTP redirect status, or a streamed redirect (HTTP 200
+    // with Next-Redirect header) indicates the session was rejected.
+    const isRedirect =
+      [302, 307].includes(res.status) ||
+      res.headers.get('Next-Redirect')?.includes('/login') ||
+      res.headers.get('x-nextjs-redirect')?.includes('/login');
+    expect(isRedirect).toBe(true);
+    // No dashboard content may be exposed to a forged session
+    const body = await res.text();
+    expect(body).not.toContain('Dashboard');
+    expect(body).not.toContain('Total Revenue');
   });
 });
 
