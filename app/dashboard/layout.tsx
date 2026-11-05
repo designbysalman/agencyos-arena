@@ -1,37 +1,22 @@
 /**
- * AgencyOS dashboard server layout.
+ * AgencyOS dashboard root layout.
  *
- * Runs in the Node.js server runtime (not Edge). Validates the Better Auth
- * session against the database on every request. Invalid or missing sessions
- * are redirected to /login. Valid sessions are passed down to the client
- * layout as a prop.
+ * Wraps the session validator in a React Suspense boundary so that
+ * request-time data access (cookies(), auth.api.getSession()) inside
+ * SessionValidator is permitted during Next.js prerendering (Next.js 16).
  *
- * This file intentionally imports @/lib/auth-server (Prisma + Better Auth),
- * which is only safe in Node.js server contexts. The Edge middleware
- * (middleware.ts) only performs a cookie-presence check and does not import
- * this module.
+ * Session validation itself runs in the Node.js server runtime via
+ * SessionValidator - it is not moved to the client and no session data
+ * is cached across users.
  */
 
-import { auth } from '@/lib/auth-server';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { DashboardClientLayout } from './dashboard-client-layout';
+import { Suspense } from 'react';
+import SessionValidator from './session-validator';
 
-interface AuthUser {
-  id: string;
-  name: string | null;
-  email: string | null;
-}
-
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const result = await auth.api.getSession({
-    headers: { cookie: cookieStore.toString() },
-  });
-
-  if (!result?.session || !result.user) {
-    redirect('/login');
-  }
-
-  return <DashboardClientLayout user={result.user as AuthUser}>{children}</DashboardClientLayout>;
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading session...</div>}>
+      <SessionValidator>{children}</SessionValidator>
+    </Suspense>
+  );
 }

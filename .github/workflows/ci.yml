@@ -132,3 +132,5 @@ jobs:
       - run: npm run build
         env:
           DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+          BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
+          BETTER_AUTH_URL: "http://localhost:3000"
