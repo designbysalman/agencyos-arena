@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { defineConfig, env } from 'prisma/config';
 
-const config = {
+export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
@@ -9,7 +9,6 @@ const config = {
   datasource: {
     url: env('DATABASE_URL'),
   },
+  // @ts-expect-error - shadowDatabaseUrl is a runtime property for Prisma migrate deploy
   shadowDatabaseUrl: env('DATABASE_URL'),
-} as any;
-
-export default defineConfig(config);
+});
