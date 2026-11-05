@@ -476,6 +476,56 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     const afterBody = await afterLogout.json();
     expect(afterBody).toBeNull();
   });
+
+  it('should allow valid session to access protected /dashboard route', async () => {
+    const email = 'http-dashboard-valid@test-agencyos.invalid';
+    httpTestUserEmails.push(email);
+
+    // Register and login through the real API
+    await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password: 'test-password-123',
+        name: 'Dashboard Valid Test',
+      }),
+    });
+
+    const loginRes = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password: 'test-password-123',
+      }),
+    });
+    expect(loginRes.status).toBe(200);
+
+    sessionCookie = extractSessionCookie(loginRes);
+    expect(sessionCookie).not.toBeNull();
+
+    // Valid session cookie should allow access to /dashboard
+    const dashboardRes = await authFetch('/dashboard');
+    expect(dashboardRes.status).toBe(200);
+  });
+
+  it('should redirect missing session to /login on protected /dashboard route', async () => {
+    // No session cookie at all
+    const res = await fetch(`${SERVER_URL}/dashboard`);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toContain('/login');
+  });
+
+  it('should redirect forged session to /login on protected /dashboard route', async () => {
+    // Forged/invalid session cookie
+    const forgedCookie = 'forged-invalid-session-token-value';
+    const res = await fetch(`${SERVER_URL}/dashboard`, {
+      headers: { Cookie: `better-auth.session_token=${forgedCookie}` },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toContain('/login');
+  });
 });
 
 describe('Authentication integration (no database)', () => {

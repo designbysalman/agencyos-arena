@@ -43,9 +43,11 @@ export async function middleware(request: Request) {
   }
 
   // Edge-safe cookie presence check only.
+  // Better Auth v1.7.17 cookie name: better-auth.session_token
+  // (cookiePrefix "better-auth" + cookieName "session_token").
   // No Prisma, no Better Auth, no Node.js-specific imports.
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('better-auth.session');
+  const sessionCookie = cookieStore.get('better-auth.session_token');
 
   if (!sessionCookie) {
     // No session cookie -> redirect to login for protected app routes
