@@ -27,6 +27,14 @@ export interface LeadResponse {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  convertedOpportunity: {
+    id: string;
+    title: string;
+    status: string;
+    value: string | null;
+    currency: string;
+    createdAt: Date;
+  } | null;
 }
 
 /** Redact sensitive fields in audit log payloads */
@@ -181,6 +189,16 @@ function serializeLead(
     createdAt: lead.createdAt,
     updatedAt: lead.updatedAt,
     deletedAt: lead.deletedAt,
+    convertedOpportunity: lead.opportunities?.[0]
+      ? {
+          id: lead.opportunities[0].id,
+          title: lead.opportunities[0].title,
+          status: lead.opportunities[0].status,
+          value: lead.opportunities[0].value?.toString() ?? null,
+          currency: lead.opportunities[0].currency,
+          createdAt: lead.opportunities[0].createdAt,
+        }
+      : null,
   };
 }
 
@@ -272,6 +290,18 @@ export async function getLead(id: string) {
       account: { select: { id: true, name: true } },
       pipeline: { select: { id: true, name: true } },
       stage: { select: { id: true, name: true } },
+      opportunities: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          value: true,
+          currency: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
     },
   });
 

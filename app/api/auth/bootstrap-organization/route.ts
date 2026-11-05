@@ -45,6 +45,7 @@ const CRM_PERMISSION_CODES = [
   'lead.update',
   'lead.delete',
   'lead.assign',
+  'lead.convert',
   'opportunity.create',
   'opportunity.read',
   'opportunity.update',

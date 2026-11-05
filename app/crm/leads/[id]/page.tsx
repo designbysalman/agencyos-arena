@@ -1,6 +1,7 @@
 /**
  * AgencyOS CRM Lead Detail page.
- * Server component that shows lead details with related Contact/Account info.
+ * Server component that shows lead details with related Contact/Account info
+ * and conversion status/action.
  */
 
 import { auth } from '@/lib/auth-server';
@@ -20,6 +21,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
   }
 
   const lead = await getLead(params.id);
+  const isConverted = lead.status === 'converted' || !!lead.convertedOpportunity;
 
   return (
     <div className="space-y-6 p-6">
@@ -43,6 +45,22 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           >
             Edit
           </Link>
+          {!isConverted && (
+            <Link
+              href={`/crm/leads/${lead.id}/convert`}
+              className="px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:bg-accent/90"
+            >
+              Convert to Opportunity
+            </Link>
+          )}
+          {isConverted && lead.convertedOpportunity && (
+            <Link
+              href={`/crm/opportunities/${lead.convertedOpportunity.id}`}
+              className="px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:bg-accent/90"
+            >
+              View Opportunity
+            </Link>
+          )}
           <Link
             href="/crm/leads"
             className="px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
@@ -63,7 +81,15 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
             <div>
               <dt className="text-xs text-muted-foreground">Status</dt>
               <dd
-                className={`font-medium ${lead.status === 'closed-won' ? 'text-green-800' : lead.status === 'closed-lost' ? 'text-red-800' : 'text-foreground'}`}
+                className={`font-medium ${
+                  lead.status === 'converted'
+                    ? 'text-blue-800'
+                    : lead.status === 'closed-won'
+                      ? 'text-green-800'
+                      : lead.status === 'closed-lost'
+                        ? 'text-red-800'
+                        : 'text-foreground'
+                }`}
               >
                 {lead.status}
               </dd>
@@ -71,7 +97,15 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
             <div>
               <dt className="text-xs text-muted-foreground">Priority</dt>
               <dd
-                className={`font-medium ${lead.priority === 'high' ? 'text-red-800' : lead.priority === 'medium' ? 'text-amber-800' : lead.priority ? 'text-blue-800' : 'text-muted-foreground'}`}
+                className={`font-medium ${
+                  lead.priority === 'high'
+                    ? 'text-red-800'
+                    : lead.priority === 'medium'
+                      ? 'text-amber-800'
+                      : lead.priority
+                        ? 'text-blue-800'
+                        : 'text-muted-foreground'
+                }`}
               >
                 {lead.priority ?? '—'}
               </dd>
@@ -94,6 +128,12 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
               <dt className="text-xs text-muted-foreground">Stage</dt>
               <dd className="font-medium">{lead.stageId ? 'Set' : '—'}</dd>
             </div>
+            {isConverted && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Converted</dt>
+                <dd className="font-medium text-blue-800">Yes</dd>
+              </div>
+            )}
             {lead.deletedAt && (
               <div>
                 <dt className="text-xs text-muted-foreground">Deleted At</dt>
@@ -139,6 +179,26 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                 )}
               </dd>
             </div>
+            {isConverted && lead.convertedOpportunity && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Converted Opportunity</dt>
+                <dd className="font-medium">
+                  <Link
+                    href={`/crm/opportunities/${lead.convertedOpportunity.id}`}
+                    className="text-accent hover:underline"
+                  >
+                    {lead.convertedOpportunity.title}
+                  </Link>
+                  <br />
+                  <span className="text-xs text-muted-foreground">
+                    Status: {lead.convertedOpportunity.status} &bull; Value:{' '}
+                    {lead.convertedOpportunity.value
+                      ? `$${Number(lead.convertedOpportunity.value).toLocaleString()}`
+                      : '—'}
+                  </span>
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
 
