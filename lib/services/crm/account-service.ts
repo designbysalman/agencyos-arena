@@ -182,6 +182,9 @@ export async function getAccount(id: string) {
         where: { deletedAt: null },
         select: { id: true, firstName: true, lastName: true, email: true, phone: true },
       },
+      _count: {
+        select: { contacts: true },
+      },
     },
   });
 

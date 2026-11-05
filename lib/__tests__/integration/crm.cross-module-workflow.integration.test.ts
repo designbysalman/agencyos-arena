@@ -449,7 +449,25 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       });
       foreignOrgId = foreignOrg?.id ?? null;
 
-      // Create a lead in the primary org
+      // Create an account first so the lead has a unique account-scoped
+      // duplicate-detection key (avoids matching unrelated leads)
+      const acctRes = await fetch(`${SERVER_URL}/api/v1/crm/accounts`, {
+        method: 'POST',
+        headers: {
+          Cookie: `better-auth.session_token=${testSessionToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'IDOR Test Account',
+          status: 'active',
+        }),
+      });
+      expect(acctRes.status).toBe(201);
+      const acct = await acctRes.json();
+      createdRecords.accounts.push(acct.id);
+
+      // Create a lead in the primary org (account-scoped for uniqueness)
       const leadRes = await fetch(`${SERVER_URL}/api/v1/crm/leads`, {
         method: 'POST',
         headers: {
@@ -458,7 +476,8 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
           Accept: 'application/json',
         },
         body: JSON.stringify({
-          source: 'website',
+          accountId: acct.id,
+          source: 'idor-test',
           status: 'new',
           priority: 'medium',
         }),
