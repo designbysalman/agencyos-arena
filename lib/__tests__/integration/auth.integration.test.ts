@@ -267,8 +267,8 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     let lastError: unknown;
     for (let i = 0; i < 30; i++) {
       try {
-        const res = await fetch(`${SERVER_URL}/api/auth/session`);
-        if (res.status === 200 || res.status === 401) {
+        const res = await fetch(`${SERVER_URL}/api/auth/get-session`);
+        if (res.status === 200) {
           canRunHttpTests = true;
           return; // Server is ready
         }
@@ -299,7 +299,7 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
   const extractSessionCookie = (res: Response): string | null => {
     const setCookie = res.headers.get('Set-Cookie');
     if (!setCookie) return null;
-    const match = setCookie.match(/better-auth\.session=([^;]+)/);
+    const match = setCookie.match(/better-auth\.session_token=([^;]+)/);
     return match ? match[1] : null;
   };
 
@@ -307,7 +307,7 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
   const authFetch = (path: string, options: RequestInit = {}): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (sessionCookie) {
-      headers.Cookie = `better-auth.session=${sessionCookie}`;
+      headers.Cookie = `better-auth.session_token=${sessionCookie}`;
     }
     return fetch(`${SERVER_URL}${path}`, { ...options, headers });
   };
@@ -370,12 +370,12 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     expect(sessionCookie).not.toBeNull();
 
     // Verify session belongs to the correct user via authenticated request
-    const sessionRes = await authFetch('/api/auth/session');
+    const sessionRes = await authFetch('/api/auth/get-session');
     expect(sessionRes.status).toBe(200);
     const sessionBody = await sessionRes.json();
     expect(sessionBody.session).not.toBeNull();
-    expect(sessionBody.session.user.id).toBeDefined();
-    expect(sessionBody.session.user.email).toBe(email);
+    expect(sessionBody.user.id).toBeDefined();
+    expect(sessionBody.user.email).toBe(email);
   });
 
   it('should validate session through the Better Auth HTTP endpoint', async () => {
@@ -407,11 +407,11 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     expect(sessionCookie).not.toBeNull();
 
     // Validate session with the captured cookie
-    const sessionRes = await authFetch('/api/auth/session');
+    const sessionRes = await authFetch('/api/auth/get-session');
     expect(sessionRes.status).toBe(200);
     const sessionBody = await sessionRes.json();
     expect(sessionBody.session).not.toBeNull();
-    expect(sessionBody.session.user.email).toBe(email);
+    expect(sessionBody.user.email).toBe(email);
   });
 
   it('should reject invalid credentials through the Better Auth HTTP endpoint', async () => {
@@ -455,7 +455,7 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     expect(sessionCookie).not.toBeNull();
 
     // Verify session is active before logout
-    const beforeLogout = await authFetch('/api/auth/session');
+    const beforeLogout = await authFetch('/api/auth/get-session');
     expect(beforeLogout.status).toBe(200);
     const beforeBody = await beforeLogout.json();
     expect(beforeBody.session).not.toBeNull();
@@ -466,14 +466,11 @@ describeIfHttp('Authentication HTTP endpoints (real Next.js server)', () => {
     });
     expect(logoutRes.status).toBe(200);
 
-    // Clear the local cookie so subsequent requests are unauthenticated
-    sessionCookie = null;
-
-    // Session should be invalid after logout
-    const afterLogout = await fetch(`${SERVER_URL}/api/auth/session`);
+    // Resend the original session cookie after logout to prove the server invalidated it
+    const afterLogout = await authFetch('/api/auth/get-session');
     expect(afterLogout.status).toBe(200);
     const afterBody = await afterLogout.json();
-    expect(afterBody.session).toBeNull();
+    expect(afterBody).toBeNull();
   });
 });
 
