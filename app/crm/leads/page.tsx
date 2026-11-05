@@ -111,13 +111,14 @@ export default async function LeadsPage({
               <th className="pb-3 font-medium">Account</th>
               <th className="pb-3 font-medium">Owner</th>
               <th className="pb-3 font-medium text-right">Expected Value</th>
+              <th className="pb-3 font-medium">Converted</th>
               <th className="pb-3 font-medium w-24">Created</th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                <td colSpan={9} className="text-center py-8 text-muted-foreground">
                   No leads found. Create a lead to get started.
                 </td>
               </tr>
@@ -134,6 +135,14 @@ export default async function LeadsPage({
                   ownerId: string | null;
                   contact: { id: string; firstName: string | null; lastName: string } | null;
                   account: { id: string; name: string } | null;
+                  convertedOpportunity: {
+                    id: string;
+                    title: string;
+                    status: string;
+                    value: string | null;
+                    currency: string;
+                    createdAt: Date;
+                  } | null;
                   createdAt: Date;
                 }) => (
                   <tr key={lead.id} className="border-b border-border hover:bg-muted/50">
@@ -206,6 +215,15 @@ export default async function LeadsPage({
                     </td>
                     <td className="py-4 text-right text-sm font-medium">
                       {lead.expectedValue ? `$${Number(lead.expectedValue).toLocaleString()}` : '—'}
+                    </td>
+                    <td className="py-4">
+                      {lead.convertedOpportunity ? (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </td>
                     <td className="py-4 text-sm text-muted-foreground">
                       {new Date(lead.createdAt).toLocaleDateString()}

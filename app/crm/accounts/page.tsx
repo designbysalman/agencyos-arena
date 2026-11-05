@@ -88,6 +88,7 @@ export default async function AccountsPage({
                   name: string;
                   website: string | null;
                   status: string;
+                  contactCount: number;
                   createdAt: Date;
                 }) => (
                   <tr key={account.id} className="border-b border-border hover:bg-muted/50">
@@ -97,7 +98,9 @@ export default async function AccountsPage({
                     <td className="py-4 text-sm text-muted-foreground">
                       {new Date(account.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-4 text-muted-foreground text-sm">0</td>
+                    <td className="py-4 text-muted-foreground text-sm">
+                      {account.contactCount}
+                    </td>
                   </tr>
                 )
               )

@@ -18,6 +18,7 @@ export interface AccountResponse {
   website: string | null;
   address: string | null;
   status: string;
+  contactCount: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -117,7 +118,11 @@ function buildAccountWhere(organizationId: string, input: AccountQueryInput) {
 
 /** Serialize an account */
 function serializeAccount(
-  account: Awaited<ReturnType<typeof prisma.agencyAccount.findUnique>>
+  account: Awaited<
+    ReturnType<typeof prisma.agencyAccount.findUnique> & {
+      _count?: { contacts: number };
+    }
+  >
 ): AccountResponse {
   return {
     id: account.id,
@@ -126,6 +131,7 @@ function serializeAccount(
     website: account.website,
     address: account.address,
     status: account.status,
+    contactCount: account._count?.contacts ?? 0,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
     deletedAt: account.deletedAt,
@@ -145,6 +151,11 @@ export async function listAccounts(input: AccountQueryInput) {
       orderBy: { [input.sortBy]: input.sortOrder },
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
+      include: {
+        _count: {
+          select: { contacts: true },
+        },
+      },
     }),
     prisma.agencyAccount.count({ where }),
   ]);
@@ -170,6 +181,9 @@ export async function getAccount(id: string) {
       contacts: {
         where: { deletedAt: null },
         select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+      },
+      _count: {
+        select: { contacts: true },
       },
     },
   });
