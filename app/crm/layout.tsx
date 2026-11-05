@@ -14,8 +14,19 @@ export const dynamic = 'force-dynamic';
 import { auth } from '@/lib/auth-server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { CrmClientLayout } from './crm-client-layout';
 
-export default async function CrmLayout({ children }: { children: React.ReactNode }) {
+interface AuthUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
+
+export default async function CrmLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const cookieStore = await cookies();
   const result = await auth.api.getSession({
     headers: { cookie: cookieStore.toString() },
@@ -25,5 +36,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
-  return <div className="flex h-screen bg-canvas text-foreground">{children}</div>;
+  return (
+    <CrmClientLayout user={result.user as AuthUser}>
+      {children}
+    </CrmClientLayout>
+  );
 }

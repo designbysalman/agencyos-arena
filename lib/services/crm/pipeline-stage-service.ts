@@ -20,6 +20,7 @@ export interface PipelineStageResponse {
   probability: number | null;
   isWon: boolean;
   isLost: boolean;
+  pipeline: { id: string; name: string } | null;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -95,7 +96,20 @@ async function createAuditLog({
 
 /** Serialize a pipeline stage */
 function serializePipelineStage(
-  stage: Awaited<ReturnType<typeof prisma.pipelineStage.findUnique>>
+  stage: {
+    id: string;
+    pipelineId: string;
+    name: string;
+    order: number;
+    color: string | null;
+    probability: number | null;
+    isWon: boolean;
+    isLost: boolean;
+    pipeline: { id: string; name: string } | null;
+    deletedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }
 ): PipelineStageResponse {
   return {
     id: stage.id,
@@ -106,6 +120,7 @@ function serializePipelineStage(
     probability: stage.probability,
     isWon: stage.isWon,
     isLost: stage.isLost,
+    pipeline: stage.pipeline,
     deletedAt: stage.deletedAt,
     createdAt: stage.createdAt,
     updatedAt: stage.updatedAt,
@@ -113,30 +128,49 @@ function serializePipelineStage(
 }
 
 /** List pipeline stages with organization scoping, soft-delete filtering, and pagination */
-export async function listPipelineStages(pipelineId: string, input: PipelineStageQueryInput) {
+export async function listPipelineStages(
+  pipelineId: string | undefined,
+  input: PipelineStageQueryInput
+) {
   const { userId, organizationId } = await getAuthorizedUser();
 
   await requirePermission(userId, organizationId, 'pipeline.read');
 
-  // Verify the pipeline exists and belongs to the user's organization
-  const pipeline = await prisma.pipeline.findFirst({
-    where: { id: pipelineId, organizationId },
-  });
+  // When a pipelineId is provided, verify it belongs to the user's organization
+  if (pipelineId) {
+    const pipeline = await prisma.pipeline.findFirst({
+      where: { id: pipelineId, organizationId },
+    });
 
-  if (!pipeline) {
-    const error = new Error('Not found') as Error & { statusCode?: number };
-    error.statusCode = 404;
-    throw error;
+    if (!pipeline) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
   }
 
-  const where = {
-    pipelineId,
+  const where: Record<string, unknown> = {
     ...(!input.includeDeleted ? { deletedAt: null } : {}),
   };
+
+  if (pipelineId) {
+    where.pipelineId = pipelineId;
+  }
+
+  if (input.search) {
+    where.OR = [
+      { name: { contains: input.search, mode: 'insensitive' } },
+    ];
+  }
 
   const [stages, total] = await prisma.$transaction([
     prisma.pipelineStage.findMany({
       where,
+      include: {
+        pipeline: {
+          select: { id: true, name: true },
+        },
+      },
       orderBy: { [input.sortBy]: input.sortOrder },
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
@@ -145,7 +179,7 @@ export async function listPipelineStages(pipelineId: string, input: PipelineStag
   ]);
 
   return {
-    stages: stages.map(serializePipelineStage),
+    stages: stages.map((s) => serializePipelineStage(s as { pipeline: { id: string; name: string } | null })),
     total,
     page: input.page,
     pageSize: input.pageSize,

@@ -13,6 +13,7 @@ import {
   Settings,
   Mail,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,8 +24,10 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contacts', href: '/crm/contacts', icon: Users },
+  { name: 'Accounts', href: '/crm/accounts', icon: Briefcase },
   { name: 'Pipelines', href: '/crm/pipelines', icon: LayoutDashboard },
   { name: 'Leads', href: '/crm/leads', icon: Briefcase },
+  { name: 'Opportunities', href: '/crm/opportunities', icon: DollarSign },
   { name: 'Proposals', href: '/sales/proposals', icon: FileText },
   { name: 'Invoices', href: '/finance/invoices', icon: CreditCard },
   { name: 'Projects', href: '/projects', icon: Briefcase },
@@ -45,7 +48,9 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
       <div className="flex h-full flex-col">
         <div className="flex h-12 items-center justify-between gap-4 border-b border-border bg-background p-4 shrink-0">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold tracking-tight text-accent">AgencyOS</h1>
+            <h1 className="text-xl font-bold tracking-tight text-accent">
+              AgencyOS
+            </h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
