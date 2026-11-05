@@ -11,9 +11,9 @@ export const leadConvertSchema = z.object({
   description: z.string().max(2000).optional().nullable(),
   value: z.string().optional().nullable(),
   currency: z.string().min(1).max(10).optional(),
-  pipelineId: z.string().cuid().optional().nullable(),
-  stageId: z.string().cuid().optional().nullable(),
-  ownerId: z.string().cuid().optional().nullable(),
+  pipelineId: z.string().optional().nullable(),
+  stageId: z.string().optional().nullable(),
+  ownerId: z.string().optional().nullable(),
   closeDate: z.string().optional().nullable(),
 });
 

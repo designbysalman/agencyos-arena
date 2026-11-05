@@ -56,8 +56,9 @@ async function getAuthorizedUser(): Promise<AuthorizedUser> {
   };
 }
 
-/** Create an audit log entry */
+/** Create an audit log entry using the transaction client */
 async function createAuditLog({
+  tx,
   actorId,
   actorName,
   action,
@@ -70,6 +71,7 @@ async function createAuditLog({
   ipAddress,
   userAgent,
 }: {
+  tx: typeof prisma;
   actorId: string;
   actorName: string | null;
   action: string;
@@ -82,7 +84,7 @@ async function createAuditLog({
   ipAddress?: string | null;
   userAgent?: string | null;
 }) {
-  await prisma.auditLog.create({
+  await tx.auditLog.create({
     data: {
       actorId,
       actorName,
@@ -99,9 +101,9 @@ async function createAuditLog({
   });
 }
 
-/** Validate owner membership within the organization */
-async function validateOwner(organizationId: string, ownerId: string) {
-  const membership = await prisma.userRole.findFirst({
+/** Validate owner membership within the organization using the transaction client */
+async function validateOwner(tx: typeof prisma, organizationId: string, ownerId: string) {
+  const membership = await tx.userRole.findFirst({
     where: { userId: ownerId, organizationId },
   });
   return !!membership;
@@ -222,7 +224,7 @@ export async function convertLead(
 
       // Validate owner membership if an owner is assigned
       if (input.ownerId) {
-        const isMember = await validateOwner(organizationId, input.ownerId);
+        const isMember = await validateOwner(tx, organizationId, input.ownerId);
         if (!isMember) {
           const error = new Error('Not found') as Error & {
             statusCode?: number;
@@ -268,6 +270,7 @@ export async function convertLead(
 
       // Audit log the conversion (Opportunity creation)
       await createAuditLog({
+        tx,
         actorId: userId,
         actorName: actorEmail,
         action: 'lead.convert',
@@ -294,6 +297,7 @@ export async function convertLead(
 
       // Audit log the Lead status update
       await createAuditLog({
+        tx,
         actorId: userId,
         actorName: actorEmail,
         action: 'lead.convert',
