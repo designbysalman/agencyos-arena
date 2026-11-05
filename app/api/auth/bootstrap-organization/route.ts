@@ -35,6 +35,11 @@ const CRM_PERMISSION_CODES = [
   'account.read',
   'account.update',
   'account.delete',
+  'pipeline.create',
+  'pipeline.read',
+  'pipeline.update',
+  'pipeline.delete',
+  'pipeline.stage.manage',
 ];
 
 /** Validate session and return the authenticated user */
