@@ -1,6 +1,30 @@
+import { auth } from '@/lib/auth-server';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function DashboardPage() {
+/**
+ * AgencyOS dashboard page.
+ *
+ * Runs in the Node.js server runtime. Validates the Better Auth session
+ * against the database BEFORE rendering any protected dashboard content.
+ * This is a second authorization boundary at the page level, in addition to
+ * the layout-level check, ensuring no protected RSC content is serialized
+ * for invalid or missing sessions.
+ *
+ * redirect() throws and prevents all children serialization entirely.
+ */
+
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const result = await auth.api.getSession({
+    headers: { cookie: cookieStore.toString() },
+  });
+
+  if (!result?.session || !result.user) {
+    redirect('/login');
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

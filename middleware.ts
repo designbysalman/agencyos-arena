@@ -1,16 +1,22 @@
 /**
  * AgencyOS middleware (ADR-0004).
  *
- * Phase 0: Server-side session validation for protected routes.
- * Validates the Better Auth session token on every request to protected
- * paths. Unauthorized users cannot access protected resources even if they
- * manually craft a fake cookie - the session is verified against Better Auth.
+ * Phase 0: Edge-safe cookie presence check for protected routes.
+ *
+ * This middleware runs in the Next.js Edge Runtime. It only performs a
+ * lightweight cookie-presence check: if no `better-auth.session` cookie
+ * exists, unauthenticated requests to protected paths are redirected to login.
+ *
+ * Full database-backed session validation is intentionally NOT performed here.
+ * Prisma and Better Auth server instances require the Node.js runtime and
+ * cannot be imported in Edge middleware. Session validation is handled by
+ * protected server layouts (e.g. app/dashboard/layout.tsx) which run in the
+ * Node.js server runtime and can safely import @/lib/auth-server.
  *
  * Authorization (role-based, resource-level) is enforced in API route
  * handlers and the service layer (see lib/permissions.ts).
  */
 
-import { auth } from '@/lib/auth-server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -36,10 +42,12 @@ export async function middleware(request: Request) {
     return NextResponse.next();
   }
 
-  // Validate session via Better Auth - reads the encrypted session cookie
-  // and verifies it against the server-side session store.
+  // Edge-safe cookie presence check only.
+  // Better Auth v1.7.17 cookie name: better-auth.session_token
+  // (cookiePrefix "better-auth" + cookieName "session_token").
+  // No Prisma, no Better Auth, no Node.js-specific imports.
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('better-auth.session');
+  const sessionCookie = cookieStore.get('better-auth.session_token');
 
   if (!sessionCookie) {
     // No session cookie -> redirect to login for protected app routes
@@ -49,31 +57,8 @@ export async function middleware(request: Request) {
     return NextResponse.next();
   }
 
-  // Verify the session token is valid by calling Better Auth's session API
-  try {
-    const session = await auth.api.getSession({
-      headers: {
-        cookie: cookieStore.toString(),
-      },
-    });
-
-    if (!session) {
-      // Session cookie exists but is invalid/expired -> redirect to login
-      if (PROTECTED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
-      return NextResponse.next();
-    }
-
-    // Valid session -> allow request
-    return NextResponse.next();
-  } catch {
-    // Session validation failed -> redirect to login for protected routes
-    if (PROTECTED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    return NextResponse.next();
-  }
+  // Cookie present -> allow request; session validation occurs in server layout
+  return NextResponse.next();
 }
 
 export const config = {
