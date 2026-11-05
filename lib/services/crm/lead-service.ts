@@ -14,7 +14,6 @@ export interface LeadResponse {
   accountId: string | null;
   contact: { id: string; firstName: string | null; lastName: string } | null;
   account: { id: string; name: string } | null;
-  owner: { id: string; name: string | null } | null;
   source: string;
   status: string;
   priority: string | null;
@@ -169,7 +168,6 @@ function serializeLead(
         }
       : null,
     account: lead.account ? { id: lead.account.id, name: lead.account.name } : null,
-    owner: lead.owner ? { id: lead.owner.id, name: lead.owner.name } : null,
     source: lead.source,
     status: lead.status,
     priority: lead.priority,
@@ -239,7 +237,6 @@ export async function listLeads(input: LeadQueryInput) {
       include: {
         contact: { select: { id: true, firstName: true, lastName: true } },
         account: { select: { id: true, name: true } },
-        owner: { select: { id: true, name: true, email: true } },
         pipeline: { select: { id: true, name: true } },
         stage: { select: { id: true, name: true } },
       },
@@ -273,7 +270,6 @@ export async function getLead(id: string) {
     include: {
       contact: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
       account: { select: { id: true, name: true } },
-      owner: { select: { id: true, name: true, email: true } },
       pipeline: { select: { id: true, name: true } },
       stage: { select: { id: true, name: true } },
     },

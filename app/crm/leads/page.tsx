@@ -134,7 +134,6 @@ export default async function LeadsPage({
                   ownerId: string | null;
                   contact: { id: string; firstName: string | null; lastName: string } | null;
                   account: { id: string; name: string } | null;
-                  owner: { name: string | null } | null;
                   createdAt: Date;
                 }) => (
                   <tr key={lead.id} className="border-b border-border hover:bg-muted/50">
@@ -199,8 +198,8 @@ export default async function LeadsPage({
                       )}
                     </td>
                     <td className="py-4">
-                      {lead.owner ? (
-                        <span className="text-sm">{lead.owner.name ?? 'Unassigned'}</span>
+                      {lead.ownerId ? (
+                        <span className="text-sm">Assigned</span>
                       ) : (
                         <span className="text-muted-foreground text-sm">Unassigned</span>
                       )}
