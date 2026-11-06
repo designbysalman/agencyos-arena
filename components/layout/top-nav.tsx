@@ -26,17 +26,8 @@ export function TopNav({
     await onSignOut();
   };
 
-  // Detect mobile (<640px) vs desktop (>=640px) for correct button behavior.
-  const [isMobile, setIsMobile] = React.useState(false);
-  React.useEffect(() => {
-    const mql = window.matchMedia('(max-width: 639px)');
-    setIsMobile(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
-  }, []);
-
   const handleMenuClick = () => {
+    const isMobile = window.matchMedia('(max-width: 639px)').matches;
     if (isMobile) {
       (toggleMobileSidebar ?? toggleSidebar)();
     } else {
