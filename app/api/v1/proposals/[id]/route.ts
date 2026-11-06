@@ -21,6 +21,7 @@ import {
   proposalUpdateSchema,
   type ProposalUpdateInput,
 } from '@/lib/schemas/proposals/proposal.schema';
+import { withDbErrorHandling } from '@/lib/api-error';
 
 /** Parse JSON body with Zod, return 400 on failure */
 async function parseBody<T>(request: Request, schema: z.ZodSchema<T>) {
@@ -43,23 +44,18 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
 }
 
 /** GET /api/v1/proposals/[id] - Get a single proposal */
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const GET = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const proposal = await getProposal(id);
     return NextResponse.json(proposal);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'proposals.get'
+);
 
 /** PUT /api/v1/proposals/[id] - Update a proposal */
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const PUT = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const parsed = await parseBody<ProposalUpdateInput>(request, proposalUpdateSchema);
 
@@ -69,26 +65,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const proposal = await updateProposal(id, parsed.data);
     return NextResponse.json(proposal);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'proposals.update'
+);
 
 /** DELETE /api/v1/proposals/[id] - Soft delete a proposal */
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const DELETE = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const result = await deleteProposal(id);
     return NextResponse.json(result);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'proposals.delete'
+);

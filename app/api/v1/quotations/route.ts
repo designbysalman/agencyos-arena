@@ -18,6 +18,7 @@ import {
   type QuotationQueryInput,
   type QuotationCreateInput,
 } from '@/lib/schemas/proposals/quotation.schema';
+import { withDbErrorHandling } from '@/lib/api-error';
 
 type ParseSuccess<T> = { success: true; data: T };
 type ParseFailure = { success: false; error: { issues: z.ZodIssue[] } };
@@ -59,42 +60,26 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
 }
 
 /** GET /api/v1/quotations - List quotations */
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const parsed = parseQuery(searchParams);
+export const GET = withDbErrorHandling(async (request: Request) => {
+  const { searchParams } = new URL(request.url);
+  const parsed = parseQuery(searchParams);
 
-    if (!parsed.success) {
-      return errorResponse('Invalid query parameters', 400, parsed.error.issues);
-    }
-
-    const result = await listQuotations(parsed.data);
-    return NextResponse.json(result);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
+  if (!parsed.success) {
+    return errorResponse('Invalid query parameters', 400, parsed.error.issues);
   }
-}
+
+  const result = await listQuotations(parsed.data);
+  return NextResponse.json(result);
+}, 'quotations.list');
 
 /** POST /api/v1/quotations - Create quotation */
-export async function POST(request: Request) {
-  try {
-    const parsed = await parseBody<QuotationCreateInput>(request, quotationCreateSchema);
+export const POST = withDbErrorHandling(async (request: Request) => {
+  const parsed = await parseBody<QuotationCreateInput>(request, quotationCreateSchema);
 
-    if (!parsed.success) {
-      return errorResponse('Invalid request body', 400, parsed.error.issues);
-    }
-
-    const quotation = await createQuotation(parsed.data);
-    return NextResponse.json(quotation, { status: 201 });
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
+  if (!parsed.success) {
+    return errorResponse('Invalid request body', 400, parsed.error.issues);
   }
-}
+
+  const quotation = await createQuotation(parsed.data);
+  return NextResponse.json(quotation, { status: 201 });
+}, 'quotations.create');

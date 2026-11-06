@@ -18,6 +18,7 @@ import {
   type ProposalQueryInput,
   type ProposalCreateInput,
 } from '@/lib/schemas/proposals/proposal.schema';
+import { withDbErrorHandling } from '@/lib/api-error';
 
 type ParseSuccess<T> = { success: true; data: T };
 type ParseFailure = { success: false; error: { issues: z.ZodIssue[] } };
@@ -59,42 +60,26 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
 }
 
 /** GET /api/v1/proposals - List proposals */
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const parsed = parseQuery(searchParams);
+export const GET = withDbErrorHandling(async (request: Request) => {
+  const { searchParams } = new URL(request.url);
+  const parsed = parseQuery(searchParams);
 
-    if (!parsed.success) {
-      return errorResponse('Invalid query parameters', 400, parsed.error.issues);
-    }
-
-    const result = await listProposals(parsed.data);
-    return NextResponse.json(result);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
+  if (!parsed.success) {
+    return errorResponse('Invalid query parameters', 400, parsed.error.issues);
   }
-}
+
+  const result = await listProposals(parsed.data);
+  return NextResponse.json(result);
+}, 'proposals.list');
 
 /** POST /api/v1/proposals - Create proposal */
-export async function POST(request: Request) {
-  try {
-    const parsed = await parseBody<ProposalCreateInput>(request, proposalCreateSchema);
+export const POST = withDbErrorHandling(async (request: Request) => {
+  const parsed = await parseBody<ProposalCreateInput>(request, proposalCreateSchema);
 
-    if (!parsed.success) {
-      return errorResponse('Invalid request body', 400, parsed.error.issues);
-    }
-
-    const proposal = await createProposal(parsed.data);
-    return NextResponse.json(proposal, { status: 201 });
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
+  if (!parsed.success) {
+    return errorResponse('Invalid request body', 400, parsed.error.issues);
   }
-}
+
+  const proposal = await createProposal(parsed.data);
+  return NextResponse.json(proposal, { status: 201 });
+}, 'proposals.create');

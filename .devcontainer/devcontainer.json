@@ -1,0 +1,38 @@
+{
+  "name": "AgencyOS — A Agent",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "Prisma.prisma"]
+    }
+  },
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": {
+      "label": "AgencyOS Preview",
+      "onAutoForward": "openPreview",
+      "proto": "http"
+    },
+    "5433": {
+      "label": "PostgreSQL (agencyos-a)",
+      "onAutoForward": "none",
+      "proto": "tcp"
+    }
+  },
+  "postStartCommand": "bash /workspace/scripts/codespaces-start.sh",
+  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt=seccomp=unconfined"],
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=agencyos-a-postgres-data,target=/var/lib/postgresql/data,type=named-volume"
+  ],
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "initializeCommand": "echo 'AgencyOS A Agent devcontainer initialized'",
+  "postCreateCommand": null
+}

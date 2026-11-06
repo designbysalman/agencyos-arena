@@ -21,6 +21,7 @@ import {
   quotationUpdateSchema,
   type QuotationUpdateInput,
 } from '@/lib/schemas/proposals/quotation.schema';
+import { withDbErrorHandling } from '@/lib/api-error';
 
 /** Parse JSON body with Zod, return 400 on failure */
 async function parseBody<T>(request: Request, schema: z.ZodSchema<T>) {
@@ -43,23 +44,18 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
 }
 
 /** GET /api/v1/quotations/[id] - Get a single quotation */
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const GET = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const quotation = await getQuotation(id);
     return NextResponse.json(quotation);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'quotations.get'
+);
 
 /** PUT /api/v1/quotations/[id] - Update a quotation */
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const PUT = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const parsed = await parseBody<QuotationUpdateInput>(request, quotationUpdateSchema);
 
@@ -69,26 +65,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const quotation = await updateQuotation(id, parsed.data);
     return NextResponse.json(quotation);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'quotations.update'
+);
 
 /** DELETE /api/v1/quotations/[id] - Soft delete a quotation */
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const DELETE = withDbErrorHandling(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const result = await deleteQuotation(id);
     return NextResponse.json(result);
-  } catch (err) {
-    const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
-    return errorResponse(
-      statusCode === 401 ? 'Unauthenticated' : statusCode === 403 ? 'Forbidden' : 'Not found',
-      statusCode
-    );
-  }
-}
+  },
+  'quotations.delete'
+);
