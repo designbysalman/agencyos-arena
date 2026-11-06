@@ -95,6 +95,9 @@ export function Sidebar({
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
+            // Mobile drawer (isOpen) always renders labels and expanded-style
+            // active states, independent of the desktop collapsed state.
+            const expanded = isOpen || !isCollapsed;
             return (
               <Link
                 key={item.name}
@@ -102,26 +105,26 @@ export function Sidebar({
                 onClick={() => setIsOpen?.(false)}
                 className={classNames(
                   'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
-                  isActive && !isCollapsed
+                  isActive && expanded
                     ? 'bg-accent/10 text-accent-foreground'
-                    : isActive && isCollapsed
+                    : isActive && !expanded
                       ? 'text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
                 aria-label={item.name}
               >
-                {/* Centered square active state for collapsed mode */}
+                {/* Centered square active state for collapsed desktop only */}
                 <div
                   className={classNames(
                     'flex items-center justify-center w-8 h-8 shrink-0 rounded-md transition-colors',
-                    isActive && isCollapsed
+                    isActive && !expanded
                       ? 'bg-accent text-accent-foreground'
                       : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >
                   <item.icon className="w-5 h-5" />
                 </div>
-                {!isCollapsed && <span className="min-w-0">{item.name}</span>}
+                {expanded && <span className="min-w-0">{item.name}</span>}
               </Link>
             );
           })}
