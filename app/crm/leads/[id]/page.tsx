@@ -20,7 +20,8 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
     redirect('/login');
   }
 
-  const lead = await getLead(params.id);
+  const { id } = await params;
+  const lead = await getLead(id);
   const isConverted = lead.status === 'converted' || !!lead.convertedOpportunity;
 
   return (

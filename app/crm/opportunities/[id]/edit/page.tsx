@@ -19,7 +19,8 @@ export default async function OpportunityEditPage({ params }: { params: { id: st
     redirect('/login');
   }
 
-  const opportunity = await getOpportunity(params.id);
+  const { id } = await params;
+  const opportunity = await getOpportunity(id);
 
   return <EditOpportunityForm opportunity={opportunity} />;
 }

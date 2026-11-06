@@ -19,7 +19,8 @@ export default async function ConvertPage({ params }: { params: { id: string } }
     redirect('/login');
   }
 
-  const lead = await getLead(params.id);
+  const { id } = await params;
+  const lead = await getLead(id);
 
-  return <ConvertForm leadId={params.id} lead={lead} />;
+  return <ConvertForm leadId={id} lead={lead} />;
 }

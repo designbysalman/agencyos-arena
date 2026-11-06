@@ -19,7 +19,8 @@ export default async function OpportunityDetailPage({ params }: { params: { id: 
     redirect('/login');
   }
 
-  const opportunity = await getOpportunity(params.id);
+  const { id } = await params;
+  const opportunity = await getOpportunity(id);
 
   return (
     <div className="space-y-6 p-6">
