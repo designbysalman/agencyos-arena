@@ -52,7 +52,7 @@ afterEach(() => {
 
 describe('EditPipelineStageForm - rendering', () => {
   it('renders the form with stage data pre-populated', () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
     expect(screen.getByRole('heading', { name: 'Edit Stage' })).toBeInTheDocument();
     expect(screen.getByLabelText('Stage Name')).toHaveValue('Qualification');
     expect(screen.getByLabelText('Order')).toHaveValue(1);
@@ -61,13 +61,13 @@ describe('EditPipelineStageForm - rendering', () => {
   });
 
   it('marks Stage Name as required', () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
     const label = screen.getByText('Stage Name');
     expect(label.closest('label')).toBeInTheDocument();
   });
 
   it('marks Order as required', () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
     const label = screen.getByText('Order');
     expect(label.closest('label')).toBeInTheDocument();
   });
@@ -75,7 +75,7 @@ describe('EditPipelineStageForm - rendering', () => {
 
 describe('EditPipelineStageForm - form interaction', () => {
   it('updates form fields', () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.change(screen.getByLabelText('Stage Name'), {
       target: { value: 'Proposal' },
@@ -85,7 +85,7 @@ describe('EditPipelineStageForm - form interaction', () => {
   });
 
   it('submits valid stage data to the API', async () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.change(screen.getByLabelText('Stage Name'), {
       target: { value: 'Proposal' },
@@ -106,7 +106,7 @@ describe('EditPipelineStageForm - form interaction', () => {
   });
 
   it('navigates to pipeline detail on successful update', async () => {
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Update Stage' }));
 
@@ -125,7 +125,7 @@ describe('EditPipelineStageForm - form interaction', () => {
         })
     );
 
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Update Stage' }));
 
@@ -153,7 +153,7 @@ describe('EditPipelineStageForm - error handling', () => {
       })
     );
 
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Update Stage' }));
 
@@ -165,7 +165,7 @@ describe('EditPipelineStageForm - error handling', () => {
   it('shows generic error on network failure', async () => {
     mockFetch.mockRejectedValue(new Error('Network error'));
 
-    render(<EditPipelineStageForm stage={mockStage} pipelineId="pipeline_123" />);
+    render(<EditPipelineStageForm stage={mockStage} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Update Stage' }));
 

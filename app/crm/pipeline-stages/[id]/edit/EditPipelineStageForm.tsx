@@ -18,10 +18,9 @@ interface EditPipelineStageFormProps {
     isWon: boolean;
     isLost: boolean;
   };
-  pipelineId: string;
 }
 
-export function EditPipelineStageForm({ stage, pipelineId }: EditPipelineStageFormProps) {
+export function EditPipelineStageForm({ stage }: EditPipelineStageFormProps) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -68,19 +67,22 @@ export function EditPipelineStageForm({ stage, pipelineId }: EditPipelineStageFo
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/v1/crm/pipeline-stages/${stage.id}?pipelineId=${pipelineId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: data.name,
-          order: data.order,
-          color: data.color || null,
-          probability: data.probability ? parseFloat(data.probability) : null,
-          isWon: data.isWon,
-          isLost: data.isLost,
-        }),
-      });
+      const res = await fetch(
+        `/api/v1/crm/pipeline-stages/${stage.id}?pipelineId=${stage.pipelineId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: data.name,
+            order: data.order,
+            color: data.color || null,
+            probability: data.probability ? parseFloat(data.probability) : null,
+            isWon: data.isWon,
+            isLost: data.isLost,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -88,7 +90,7 @@ export function EditPipelineStageForm({ stage, pipelineId }: EditPipelineStageFo
         return;
       }
 
-      router.push(`/crm/pipelines/${pipelineId}`);
+      router.push(`/crm/pipelines/${stage.pipelineId}`);
       router.refresh();
     } catch {
       setError('Unable to update stage');

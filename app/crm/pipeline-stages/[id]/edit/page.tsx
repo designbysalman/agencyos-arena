@@ -9,13 +9,7 @@ import { redirect } from 'next/navigation';
 import { getPipelineStage } from '@/lib/services/crm/pipeline-stage-service';
 import { EditPipelineStageForm } from './EditPipelineStageForm';
 
-export default async function PipelineStageEditPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function PipelineStageEditPage({ params }: { params: { id: string } }) {
   const cookieStore = await cookies();
   const result = await auth.api.getSession({
     headers: { cookie: cookieStore.toString() },
@@ -26,8 +20,7 @@ export default async function PipelineStageEditPage({
   }
 
   const { id } = await params;
-  const pipelineId = String(searchParams.pipelineId ?? '');
   const stage = await getPipelineStage(id);
 
-  return <EditPipelineStageForm stage={stage} pipelineId={pipelineId} />;
+  return <EditPipelineStageForm stage={stage} />;
 }
