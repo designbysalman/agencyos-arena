@@ -119,7 +119,9 @@ export function Sidebar({
                     'flex items-center justify-center w-8 h-8 shrink-0 rounded-md transition-colors',
                     isActive && !expanded
                       ? 'bg-accent text-accent-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                      : isActive && expanded
+                        ? 'text-accent-foreground'
+                        : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >
                   <item.icon className="w-5 h-5" />
