@@ -47,16 +47,37 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
+  // Close mobile drawer on Escape key
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && setIsOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [setIsOpen]);
+
+  // Sidebar width: full width on mobile regardless of collapsed state;
+  // desktop respects collapsed/expanded.
+  const sidebarWidth = classNames(
+    'w-64', // mobile default: full 256px
+    isCollapsed ? 'sm:w-16' : 'sm:w-64', // desktop: collapsed/expanded
+  );
+
+  // Translate: off-screen to the LEFT when closed (mobile only).
+  // Desktop is always visible via sm:!translate-x-0.
+  const sidebarTranslate = classNames(
+    '-translate-x-full sm:!translate-x-0',
+    isOpen ? 'translate-x-0' : '-translate-x-full',
+  );
+
   return (
     <aside
       className={classNames(
         'fixed inset-y-0 left-0 z-50 border-r border-border bg-background transition-all duration-300 ease-in-out',
-        isCollapsed ? 'w-16' : 'w-64',
-        // Desktop: always visible
-        'sm:translate-x-0',
-        // Mobile: off-screen by default, slides in when open
-        'translate-x-full sm:!translate-x-0',
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+        sidebarWidth,
+        sidebarTranslate,
       )}
     >
       <div className="flex h-full flex-col">
@@ -87,6 +108,7 @@ export function Sidebar({
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => setIsOpen?.(false)}
                 className={classNames(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive

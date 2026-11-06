@@ -26,11 +26,29 @@ export function TopNav({
     await onSignOut();
   };
 
+  // Detect mobile (<640px) vs desktop (>=640px) for correct button behavior.
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mql = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  const handleMenuClick = () => {
+    if (isMobile) {
+      (toggleMobileSidebar ?? toggleSidebar)();
+    } else {
+      toggleSidebar();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 flex h-12 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur px-4 shrink-0">
       <div className="flex items-center gap-2">
         <button
-          onClick={toggleMobileSidebar ?? toggleSidebar}
+          onClick={handleMenuClick}
           className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
           aria-label={isMobileSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
