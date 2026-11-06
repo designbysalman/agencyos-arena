@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     async function loadSession() {
       try {
-        const res = await fetch('/api/auth/session', {
+        const res = await fetch('/api/auth/get-session', {
           credentials: 'include',
           headers: { Accept: 'application/json' },
         });
