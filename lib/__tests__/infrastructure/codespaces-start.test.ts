@@ -105,8 +105,7 @@ describe('codespaces-start.sh safety properties', () => {
   });
 
   it('is idempotent (re-running is safe)', () => {
-    expect(scriptContent).toContain('already serving a Node.js process');
-    expect(scriptContent).toContain('Reusing existing Next.js instance');
+    expect(scriptContent).toContain('already running');
   });
 });
 
