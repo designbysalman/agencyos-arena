@@ -1,7 +1,11 @@
 {
   "name": "AgencyOS — A Agent",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
-  "features": {},
+  "features": {
+    "ghcr.io/devcontainers/features/docker-cli:1": {
+      "version": "latest"
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "Prisma.prisma"]
@@ -20,7 +24,7 @@
       "proto": "tcp"
     }
   },
-  "postStartCommand": "bash /workspaces/agencyos-arena/scripts/codespaces-start.sh",
+  "postStartCommand": "bash /workspaces/agencyos-arena/.devcontainer/setup-docker-socket.sh && bash /workspaces/agencyos-arena/scripts/codespaces-start.sh",
   "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt=seccomp=unconfined"],
   "mounts": ["source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"],
   "workspaceFolder": "/workspaces/agencyos-arena",
