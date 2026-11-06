@@ -51,8 +51,8 @@ describe('setup-docker-socket.sh safety properties', () => {
   });
 
   it('is idempotent (safe to re-run)', () => {
-    expect(scriptContent).toContain('already exists');
-    expect(scriptContent).toContain('already a member');
+    expect(scriptContent).toContain('already accessible');
+    expect(scriptContent).toContain('maps to existing group');
     expect(scriptContent).toContain('No changes needed');
   });
 

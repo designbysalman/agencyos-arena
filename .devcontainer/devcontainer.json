@@ -30,5 +30,5 @@
   "workspaceFolder": "/workspaces/agencyos-arena",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/agencyos-arena,type=bind",
   "initializeCommand": "echo 'AgencyOS A Agent devcontainer initialized'",
-  "postCreateCommand": "apt-get update && apt-get install -y ca-certificates curl gnupg && install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && chmod a+r /etc/apt/keyrings/docker.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null && apt-get update && apt-get install -y docker-ce-cli docker-compose-plugin && usermod -aG docker vscode"
+  "postCreateCommand": null
 }

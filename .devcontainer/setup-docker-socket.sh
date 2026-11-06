@@ -6,17 +6,17 @@
 #
 # The host Docker socket is mounted at container start time and is typically
 # owned by root with a specific GID (e.g. 800 on GitHub Codespaces). This
-# script ensures the current user can access that socket by:
-#   1. Detecting the socket's actual GID
-#   2. Creating a host-matching group with that GID if it doesn't exist
-#   3. Adding the current user to that group
+# script ensures the current user can access that socket without starting
+# a Docker daemon or using Docker-in-Docker.
 #
-# It does NOT start a Docker daemon and does NOT use Docker-in-Docker.
-# It only configures client-side access to the already-mounted socket.
+# It handles both root and non-root execution:
+#   * Root: creates group, adds user, adjusts socket group/permissions
+#   * Non-root: warns about limitations, tries sg for current session
 #
 # Requirements preserved:
 #   * Never runs docker compose down -v or any destructive reset
 #   * Never starts a Docker daemon inside the container
+#   * Never changes socket ownership unless safe and necessary
 #   * Idempotent: safe to run on every Codespaces resume
 
 set -uo pipefail
@@ -31,17 +31,17 @@ warn() {
   printf '[setup-docker-socket] WARNING: %s\n' "$*" >&2
 }
 
-error() {
-  printf '[setup-docker-socket] ERROR: %s\n' "$*" >&2
-  exit 1
-}
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
+# If Docker already works, nothing to do.
+if docker info >/dev/null 2>&1; then
+  log "Docker already accessible. No changes needed."
+  exit 0
+fi
+
 # If the socket doesn't exist yet, there's nothing to configure.
-# Docker commands will fail later with a clear message if needed.
 if [[ ! -S "$DOCKER_SOCKET" ]]; then
   log "Docker socket not found at $DOCKER_SOCKET. Skipping socket group setup."
   exit 0
@@ -52,57 +52,84 @@ log "Found Docker socket at $DOCKER_SOCKET."
 # Detect the socket's actual GID (e.g. 800 on GitHub Codespaces).
 SOCKET_GID=$(stat -c '%g' "$DOCKER_SOCKET" 2>/dev/null || true)
 if [[ -z "$SOCKET_GID" ]]; then
-  error "Could not determine GID of $DOCKER_SOCKET."
+  warn "Could not determine GID of $DOCKER_SOCKET."
+  exit 0
 fi
 
 log "Docker socket GID: $SOCKET_GID."
 
-# Get the current user and their primary group.
+# Check if the GID already maps to an existing group (e.g. 'docker' on Codespaces).
+EXISTING_GROUP=$(getent group "$SOCKET_GID" 2>/dev/null | cut -d: -f1 || true)
+
+if [[ -n "$EXISTING_GROUP" ]]; then
+  TARGET_GROUP="$EXISTING_GROUP"
+  log "GID $SOCKET_GID maps to existing group: $TARGET_GROUP"
+else
+  TARGET_GROUP="dockersock_${SOCKET_GID}"
+  log "No existing group for GID $SOCKET_GID. Target group: $TARGET_GROUP"
+fi
+
+# Determine if we're running as root.
+IS_ROOT=false
+if [[ "$(id -u 2>/dev/null || true)" == "0" ]]; then
+  IS_ROOT=true
+fi
+
+if [[ "$IS_ROOT" == "true" ]]; then
+  # Create group only if no existing group maps to the socket GID.
+  if [[ -z "$EXISTING_GROUP" ]]; then
+    if command -v groupadd >/dev/null 2>&1; then
+      log "Creating group $TARGET_GROUP with GID $SOCKET_GID..."
+      groupadd -g "$SOCKET_GID" "$TARGET_GROUP" 2>/dev/null || \
+        warn "groupadd failed. Group may already exist."
+    else
+      warn "groupadd not available. Cannot create group $TARGET_GROUP."
+    fi
+  fi
+
+  # Add the current user to the target group.
+  CURRENT_USER="${USER:-$(id -un 2>/dev/null || echo vscode)}"
+  if command -v usermod >/dev/null 2>&1; then
+    log "Adding user $CURRENT_USER to group $TARGET_GROUP..."
+    usermod -aG "$TARGET_GROUP" "$CURRENT_USER" 2>/dev/null || \
+      warn "usermod failed. User may already be a member."
+  else
+    warn "usermod not available. Cannot add user to group."
+  fi
+
+  # Try to set socket group to target group (only if different and safe).
+  SOCKET_GROUP=$(stat -c '%G' "$DOCKER_SOCKET" 2>/dev/null || true)
+  if [[ -n "$SOCKET_GROUP" && "$SOCKET_GROUP" != "$TARGET_GROUP" ]]; then
+    log "Setting socket group to $TARGET_GROUP..."
+    chgrp "$TARGET_GROUP" "$DOCKER_SOCKET" 2>/dev/null || \
+      warn "Could not chgrp socket (may be read-only mount or needs root)."
+  fi
+
+  # Ensure group read/write on the socket (only if we own it or have permission).
+  chmod g+rw "$DOCKER_SOCKET" 2>/dev/null || \
+    warn "Could not chmod socket (may be read-only mount or needs root)."
+else
+  warn "Not running as root. Cannot create groups or modify users."
+  warn "Docker access may require container restart or manual group setup."
+fi
+
+# Try to make Docker accessible in the current session using sg.
 CURRENT_USER="${USER:-$(id -un 2>/dev/null || echo vscode)}"
-CURRENT_UID=$(id -u "$CURRENT_USER" 2>/dev/null || true)
-
-log "Current user: $CURRENT_USER (UID: $CURRENT_UID)."
-
-# Check if the user can already access the socket.
-if docker info >/dev/null 2>&1; then
-  log "User $CURRENT_USER can already access the Docker socket. No changes needed."
-  exit 0
-fi
-
-# Create a group matching the socket's GID if it doesn't already exist.
-GROUP_NAME="dockersock_${SOCKET_GID}"
-if getent group "$GROUP_NAME" >/dev/null 2>&1; then
-  log "Group $GROUP_NAME (GID $SOCKET_GID) already exists."
-elif command -v groupadd >/dev/null 2>&1; then
-  log "Creating group $GROUP_NAME with GID $SOCKET_GID..."
-  groupadd -g "$SOCKET_GID" "$GROUP_NAME"
+if groups "$CURRENT_USER" 2>/dev/null | tr ' ' '\n' | grep -qx "$TARGET_GROUP"; then
+  log "User $CURRENT_USER is a member of $TARGET_GROUP."
+  if command -v sg >/dev/null 2>&1; then
+    log "Testing Docker access via sg in current session..."
+    if sg "$TARGET_GROUP" -c "docker info >/dev/null 2>&1" 2>/dev/null; then
+      log "Docker is accessible via sg in the current session."
+    else
+      warn "Docker not yet accessible via sg. Group changes may need a new shell."
+    fi
+  else
+    warn "sg not available. Group changes require a new shell to take effect."
+  fi
 else
-  warn "groupadd not available. Cannot create group $GROUP_NAME."
+  warn "User $CURRENT_USER is not yet a member of $TARGET_GROUP."
+  warn "Group membership changes require a new shell or container restart."
 fi
 
-# Add the current user to the group if not already a member.
-if id -nG "$CURRENT_USER" 2>/dev/null | tr ' ' '\n' | grep -qx "$GROUP_NAME"; then
-  log "User $CURRENT_USER is already a member of $GROUP_NAME."
-elif command -v usermod >/dev/null 2>&1; then
-  log "Adding user $CURRENT_USER to group $GROUP_NAME..."
-  usermod -aG "$GROUP_NAME" "$CURRENT_USER"
-else
-  warn "usermod not available. Cannot add user $CURRENT_USER to $GROUP_NAME."
-fi
-
-# Change the socket's group to match so the user can access it via group membership.
-# The socket is owned by root:root or root:<some-gid>; we set the group to our
-# created group so group members can connect.
-SOCKET_GROUP=$(stat -c '%G' "$DOCKER_SOCKET" 2>/dev/null || true)
-if [[ "$SOCKET_GROUP" != "$GROUP_NAME" ]]; then
-  log "Setting socket group to $GROUP_NAME..."
-  chgrp "$GROUP_NAME" "$DOCKER_SOCKET" 2>/dev/null || \
-    warn "Could not change socket group (may need root). User may need to re-login."
-fi
-
-# Ensure group read/write on the socket.
-chmod g+rw "$DOCKER_SOCKET" 2>/dev/null || \
-  warn "Could not change socket permissions (may need root)."
-
-log "Docker socket access configured for user $CURRENT_USER."
-log "Note: Group membership changes require a new shell or container restart to take effect."
+log "Docker socket access setup complete."
