@@ -80,13 +80,31 @@ describe('codespaces-start.sh safety properties', () => {
     expect(scriptContent).toContain('.next-dev.log');
   });
 
-  it('fails clearly when Next.js exits immediately', () => {
-    expect(scriptContent).toContain('exited immediately');
-    expect(scriptContent).toContain('kill -0');
+  it('does not use unreliable kill -0 check on npm PID', () => {
+    // The old code checked `kill -0` on the npm PID, which is unreliable
+    // because npm may exit after spawning the next dev child process.
+    // The new code relies on wait_for_nextjs polling the health endpoint.
+    expect(scriptContent).not.toMatch(/kill -0.*nextjs_pid/);
+    expect(scriptContent).not.toContain('exited immediately');
+  });
+
+  it('uses setsid to detach Next.js from the shell session', () => {
+    expect(scriptContent).toContain('setsid nohup npm run dev');
+  });
+
+  it('writes a PID file for process tracking', () => {
+    expect(scriptContent).toContain('NEXT_PID_FILE');
+    expect(scriptContent).toContain('.next-dev.pid');
+    expect(scriptContent).toContain('echo "$nextjs_pid" > "$NEXT_PID_FILE"');
+  });
+
+  it('waits for Next.js readiness before reporting success', () => {
+    expect(scriptContent).toContain('wait_for_nextjs');
+    expect(scriptContent).toContain('become reachable');
+    expect(scriptContent).toContain('/api/health');
   });
 
   it('is idempotent (re-running is safe)', () => {
-    expect(scriptContent).toContain('already running');
     expect(scriptContent).toContain('already serving a Node.js process');
     expect(scriptContent).toContain('Reusing existing Next.js instance');
   });
