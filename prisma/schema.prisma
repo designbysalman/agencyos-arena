@@ -115,6 +115,7 @@ model Organization {
   estimates      Estimate[]
   expenseItems   ExpenseItem[]
   proposals      Proposal[]
+  quotations     Quotation[]
   contracts      Contract[]
   documents      Document[]
   tasks          Task[]
@@ -689,18 +690,101 @@ model Notification {
 
 /// Documents
 model Proposal {
-  id          String   @id @default(cuid())
+  id            String   @id @default(cuid())
   organizationId String
+  proposalNumber String
   opportunityId String?
-  contactId   String?
-  title       String
-  status      String   @default("draft")
-  total       Decimal  @default(0)
-  currency    String   @default("USD")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  contactId     String?
+  accountId     String?
+  clientName    String?
+  clientEmail   String?
+  title         String
+  description   String?
+  status        String   @default("draft")
+  subtotal      Decimal  @default(0)
+  discount      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  total         Decimal  @default(0)
+  currency      String   @default("USD")
+  validUntil    DateTime?
+  sentAt        DateTime?
+  acceptedAt    DateTime?
+  deletedAt     DateTime?
+  version       Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  account      AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  items         ProposalLineItem[]
+
+  @@unique([organizationId, proposalNumber])
+}
+
+model ProposalLineItem {
+  id          String   @id @default(cuid())
+  proposalId  String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  discount    Decimal  @default(0)
+  taxRate     Decimal  @default(0)
+  amount      Decimal
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+}
+
+model Quotation {
+  id            String   @id @default(cuid())
+  organizationId String
+  quotationNumber String
+  opportunityId String?
+  contactId     String?
+  accountId     String?
+  clientName    String?
+  clientEmail   String?
+  title         String
+  description   String?
+  status        String   @default("draft")
+  subtotal      Decimal  @default(0)
+  discount      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  total         Decimal  @default(0)
+  currency      String   @default("USD")
+  validUntil    DateTime?
+  sentAt        DateTime?
+  acceptedAt    DateTime?
+  deletedAt     DateTime?
+  version       Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  account      AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  items         QuotationLineItem[]
+
+  @@unique([organizationId, quotationNumber])
+}
+
+model QuotationLineItem {
+  id          String   @id @default(cuid())
+  quotationId String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  discount    Decimal  @default(0)
+  taxRate     Decimal  @default(0)
+  amount      Decimal
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
 model Contract {
