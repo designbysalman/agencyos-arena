@@ -15,7 +15,9 @@ import {
   CreditCard,
   Settings,
   Mail,
-  ChevronRight,
+  ChevronLeft,
+  Menu,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -39,12 +41,7 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export function Sidebar({
-  isCollapsed,
-  setIsCollapsed,
-  isOpen = false,
-  setIsOpen,
-}: SidebarProps) {
+export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
 
   // Close mobile drawer on Escape key
@@ -62,14 +59,14 @@ export function Sidebar({
   // desktop respects collapsed/expanded.
   const sidebarWidth = classNames(
     'w-64', // mobile default: full 256px
-    isCollapsed ? 'sm:w-16' : 'sm:w-64', // desktop: collapsed/expanded
+    isCollapsed ? 'sm:w-16' : 'sm:w-64' // desktop: collapsed/expanded
   );
 
   // Translate: off-screen to the LEFT when closed (mobile only).
   // Desktop is always visible via sm:!translate-x-0.
   const sidebarTranslate = classNames(
     '-translate-x-full sm:!translate-x-0',
-    isOpen ? 'translate-x-0' : '-translate-x-full',
+    isOpen ? 'translate-x-0' : '-translate-x-full'
   );
 
   return (
@@ -77,19 +74,39 @@ export function Sidebar({
       className={classNames(
         'fixed inset-y-0 left-0 z-50 border-r border-border bg-background transition-all duration-300 ease-in-out',
         sidebarWidth,
-        sidebarTranslate,
+        sidebarTranslate
       )}
     >
       <div className="flex h-full flex-col">
-        <div className="flex h-12 items-center justify-between gap-4 border-b border-border bg-background p-4 shrink-0">
+        <div className="flex h-12 items-center justify-between border-b border-border bg-background p-4 shrink-0 relative">
+          {/* AgencyOS logo: shown when sidebar is expanded (desktop or open mobile drawer) */}
           {!isCollapsed && (
-            <h1 className="text-xl font-bold tracking-tight text-accent">
-              AgencyOS
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight text-accent">AgencyOS</h1>
           )}
-          {/* Sidebar toggle on desktop is handled by TopNav hamburger.
-              On mobile, TopNav hamburger opens/closes the drawer.
-              No duplicate toggle control in sidebar header. */}
+
+          {/* Right-aligned toggle: collapse chevron (expanded desktop) or close button (open mobile drawer) */}
+          {!isCollapsed && (
+            <button
+              onClick={isOpen ? () => setIsOpen?.(false) : () => setIsCollapsed(true)}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
+              aria-label={isOpen ? 'Close sidebar' : 'Collapse sidebar'}
+            >
+              {isOpen ? <X className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+          )}
+
+          {/* Centered hamburger: shown only when sidebar is collapsed (desktop collapsed) */}
+          {isCollapsed && !isOpen && (
+            <div className="absolute inset-x-0 flex items-center justify-center">
+              <button
+                onClick={() => setIsCollapsed(false)}
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
+                aria-label="Expand sidebar"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -109,7 +126,7 @@ export function Sidebar({
                     ? 'bg-accent text-accent-foreground'
                     : isActive && !expanded
                       ? 'text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 )}
                 aria-label={item.name}
               >
@@ -121,7 +138,7 @@ export function Sidebar({
                       ? 'bg-accent text-accent-foreground'
                       : isActive && expanded
                         ? 'text-accent-foreground'
-                        : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                        : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   )}
                 >
                   <item.icon className="w-5 h-5" />

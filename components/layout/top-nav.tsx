@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Sun, Moon, Menu, LogOut } from 'lucide-react';
 
 interface TopNavProps {
-  toggleSidebar: () => void;
   toggleMobileSidebar?: () => void;
   isMobileSidebarOpen?: boolean;
   user: { name?: string | null; email?: string | null } | null;
@@ -14,7 +13,6 @@ interface TopNavProps {
 }
 
 export function TopNav({
-  toggleSidebar,
   toggleMobileSidebar,
   isMobileSidebarOpen = false,
   user,
@@ -26,21 +24,13 @@ export function TopNav({
     await onSignOut();
   };
 
-  const handleMenuClick = () => {
-    const isMobile = window.matchMedia('(max-width: 639px)').matches;
-    if (isMobile) {
-      (toggleMobileSidebar ?? toggleSidebar)();
-    } else {
-      toggleSidebar();
-    }
-  };
-
   return (
     <header className="sticky top-0 z-40 flex h-12 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur px-4 shrink-0">
       <div className="flex items-center gap-2">
+        {/* Mobile-only hamburger: desktop toggle lives inside the sidebar header */}
         <button
-          onClick={handleMenuClick}
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
+          onClick={() => toggleMobileSidebar?.()}
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0 sm:hidden"
           aria-label={isMobileSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           <Menu className="w-5 h-5" />
