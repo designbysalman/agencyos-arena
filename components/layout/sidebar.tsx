@@ -69,7 +69,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
     isOpen ? 'translate-x-0' : '-translate-x-full'
   );
 
-  return (
+    // Expanded: labels shown and expanded-style active states.
+    // True when desktop is expanded OR mobile drawer is open,
+    // independent of the desktop collapsed state.
+    const expanded = isOpen || !isCollapsed;
+
+    return (
     <aside
       className={classNames(
         'fixed inset-y-0 left-0 z-50 border-r border-border bg-background transition-all duration-300 ease-in-out',
@@ -80,12 +85,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
       <div className="flex h-full flex-col">
         <div className="flex h-12 items-center justify-between border-b border-border bg-background p-4 shrink-0 relative">
           {/* AgencyOS logo: shown when sidebar is expanded (desktop or open mobile drawer) */}
-          {!isCollapsed && (
+          {expanded && (
             <h1 className="text-xl font-bold tracking-tight text-accent">AgencyOS</h1>
           )}
 
           {/* Right-aligned toggle: collapse chevron (expanded desktop) or close button (open mobile drawer) */}
-          {!isCollapsed && (
+          {expanded && (
             <button
               onClick={isOpen ? () => setIsOpen?.(false) : () => setIsCollapsed(true)}
               className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
@@ -112,9 +117,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
-            // Mobile drawer (isOpen) always renders labels and expanded-style
-            // active states, independent of the desktop collapsed state.
-            const expanded = isOpen || !isCollapsed;
             return (
               <Link
                 key={item.name}
