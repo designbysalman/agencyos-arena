@@ -359,6 +359,49 @@ describe('Opportunity service - createOpportunity', () => {
     ).rejects.toMatchObject({ statusCode: 404 });
   });
 
+  it('rejects stage from different org when no pipelineId is provided', async () => {
+    mockStageFindFirst.mockResolvedValue(null);
+
+    await expect(
+      createOpportunity({ ...createInput, stageId: 'foreign_stage' })
+    ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(mockStageFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'foreign_stage',
+        pipeline: { organizationId: orgId },
+      },
+      include: { pipeline: true },
+    });
+  });
+
+  it('allows stage from same org pipeline when no pipelineId is provided', async () => {
+    mockStageFindFirst.mockResolvedValue({
+      id: 'stage_1',
+      pipelineId: 'pipeline_1',
+      pipeline: { id: 'pipeline_1', organizationId: orgId },
+    });
+    mockOppCreate.mockResolvedValue({
+      id: 'new_opp',
+      organizationId: orgId,
+      title: 'Test Deal',
+      status: 'open',
+      pipelineId: null,
+      stageId: 'stage_1',
+    });
+    mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
+
+    const result = await createOpportunity({ ...createInput, stageId: 'stage_1' });
+    expect(result.id).toBe('new_opp');
+    expect(mockStageFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'stage_1',
+        pipeline: { organizationId: orgId },
+      },
+      include: { pipeline: true },
+    });
+  });
+
   it('throws 401 when unauthenticated', async () => {
     mockNoAuth();
     await expect(createOpportunity(createInput)).rejects.toThrow('Unauthenticated');
@@ -467,6 +510,60 @@ describe('Opportunity service - updateOpportunity', () => {
     await expect(
       updateOpportunity(oppId, { title: 'Updated' } as OpportunityUpdateInput)
     ).rejects.toThrow('Forbidden');
+  });
+
+  it('rejects stage from different org when updating stageId without pipelineId', async () => {
+    const existing = {
+      id: oppId,
+      organizationId: orgId,
+      pipelineId: null,
+      stageId: null,
+      title: 'Test Deal',
+      status: 'open',
+    };
+    mockOppFindFirst.mockResolvedValue(existing);
+    mockStageFindFirst.mockResolvedValue(null);
+
+    await expect(
+      updateOpportunity(oppId, { stageId: 'foreign_stage' } as OpportunityUpdateInput)
+    ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(mockStageFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'foreign_stage',
+        pipeline: { organizationId: orgId },
+      },
+      include: { pipeline: true },
+    });
+  });
+
+  it('allows stage from same org pipeline when updating stageId', async () => {
+    const existing = {
+      id: oppId,
+      organizationId: orgId,
+      pipelineId: 'pipeline_1',
+      stageId: null,
+      title: 'Test Deal',
+      status: 'open',
+      stage: { pipelineId: 'pipeline_1' },
+    };
+    mockOppFindFirst.mockResolvedValue(existing);
+    mockStageFindFirst.mockResolvedValue({
+      id: 'stage_1',
+      pipelineId: 'pipeline_1',
+    });
+    mockOppUpdate.mockResolvedValue({ ...existing, stageId: 'stage_1' });
+    mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
+
+    const result = await updateOpportunity(oppId, { stageId: 'stage_1' } as OpportunityUpdateInput);
+    expect(result.stageId).toBe('stage_1');
+    expect(mockStageFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'stage_1',
+        pipelineId: 'pipeline_1',
+      },
+      include: { pipeline: true },
+    });
   });
 });
 

@@ -1,22 +1,26 @@
-# AgencyOS — Phase 0 Local Development
+# AgencyOS — A Agent Local Preview (Phase 0 + Phase 1)
 # No cloud resources are provisioned. All services run locally.
 #
-# To start:   docker compose up
-# To stop:    docker compose down
-# To reset DB: docker compose down -v && docker compose up
+# Ports are configurable via environment variables (see .env.example).
+# CI continues to use localhost:3000/5432; this compose file is for A Agent local preview only.
+#
+# To start:   docker compose -p agencyos-a up
+# To stop:    docker compose -p agencyos-a down
+# To reset DB: docker compose -p agencyos-a down -v && docker compose -p agencyos-a up
+
+name: agencyos-a
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: agencyos-postgres
     environment:
       POSTGRES_USER: agencyos
       POSTGRES_PASSWORD: agencyos_dev_password
       POSTGRES_DB: agencyos
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
-      - agencyos_postgres_data:/var/lib/postgresql/data
+      - agencyos_a_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agencyos -d agencyos"]
       interval: 5s
@@ -27,22 +31,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: agencyos-app
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@postgres:5432/agencyos?schema=public"
+      DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@postgres:${POSTGRES_INTERNAL_PORT:-5432}/agencyos?schema=public"
       NEXTAUTH_SECRET: "replace-with-a-strong-secret-in-production"
       BETTER_AUTH_SECRET: "replace-with-a-strong-secret-in-production"
-      BETTER_AUTH_URL: "http://localhost:3000"
+      BETTER_AUTH_URL: "http://localhost:${APP_PORT:-3001}"
       NODE_ENV: "development"
+      PORT: "${APP_PORT:-3001}"
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3001}:${APP_PORT:-3001}"
     volumes:
       - .:/app
       - /app/node_modules
     command: npm run dev
 
 volumes:
-  agencyos_postgres_data:
+  agencyos_a_postgres_data:

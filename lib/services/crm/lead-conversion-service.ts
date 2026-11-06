@@ -196,14 +196,16 @@ export async function convertLead(
         }
       }
 
-      // Validate cross-org stage relationship if stageId is provided
+      // Validate cross-org stage relationship if stageId is provided — stage
+      // must belong to the same organization (via its pipeline).
       if (input.stageId) {
         const pipelineId = input.pipelineId ?? lead.pipelineId ?? null;
         const stage = await tx.pipelineStage.findFirst({
           where: {
             id: input.stageId,
-            ...(pipelineId ? { pipelineId } : {}),
+            ...(pipelineId ? { pipelineId } : { pipeline: { organizationId } }),
           },
+          include: { pipeline: true },
         });
         if (!stage) {
           const error = new Error('Not found') as Error & {
