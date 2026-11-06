@@ -41,17 +41,17 @@ const envKeys = [
   'NODE_ENV',
 ];
 
-/** Set env vars and reset module registry so auth-server re-evaluates */
+/** Set env vars and reset module registry so auth-server re-evaluates.
+ * Explicitly stubs all four env keys so unspecified ones are deleted,
+ * not left over from CI or previous tests. */
 function applyEnv(env: Record<string, string | undefined>) {
+  vi.unstubAllEnvs();
   for (const key of envKeys) {
-    if (env[key] === undefined) {
-      vi.unstubAllEnvs();
-      break;
-    }
-  }
-  for (const [key, value] of Object.entries(env)) {
+    const value = env[key];
     if (value !== undefined) {
       vi.stubEnv(key, value);
+    } else {
+      vi.stubEnv(key, undefined); // explicitly delete unset vars
     }
   }
   vi.resetModules();
