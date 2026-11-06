@@ -40,7 +40,6 @@ export function CrmClientLayout({ children, user }: CrmClientLayoutProps) {
         )}
       >
         <TopNav
-          toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           toggleMobileSidebar={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)}
           isMobileSidebarOpen={isMobileDrawerOpen}
           user={{

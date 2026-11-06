@@ -40,7 +40,6 @@ export function DashboardClientLayout({ children, user }: DashboardClientLayoutP
         )}
       >
         <TopNav
-          toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           toggleMobileSidebar={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)}
           isMobileSidebarOpen={isMobileDrawerOpen}
           user={{
