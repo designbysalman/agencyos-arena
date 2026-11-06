@@ -8,25 +8,29 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
+  LayoutDashboard as PipelinesIcon,
+  Briefcase as LeadsIcon,
+  DollarSign,
   FileText,
   CreditCard,
   Settings,
   Mail,
   ChevronRight,
-  DollarSign,
 } from 'lucide-react';
 
 interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  isOpen?: boolean;
+  setIsOpen?: (open: boolean) => void;
 }
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contacts', href: '/crm/contacts', icon: Users },
   { name: 'Accounts', href: '/crm/accounts', icon: Briefcase },
-  { name: 'Pipelines', href: '/crm/pipelines', icon: LayoutDashboard },
-  { name: 'Leads', href: '/crm/leads', icon: Briefcase },
+  { name: 'Pipelines', href: '/crm/pipelines', icon: PipelinesIcon },
+  { name: 'Leads', href: '/crm/leads', icon: LeadsIcon },
   { name: 'Opportunities', href: '/crm/opportunities', icon: DollarSign },
   { name: 'Proposals', href: '/sales/proposals', icon: FileText },
   { name: 'Invoices', href: '/finance/invoices', icon: CreditCard },
@@ -35,14 +39,24 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
+export function Sidebar({
+  isCollapsed,
+  setIsCollapsed,
+  isOpen = false,
+  setIsOpen,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
       className={classNames(
-        'fixed left-0 top-0 bottom-0 z-50 border-r border-border bg-background transition-all duration-200',
-        isCollapsed ? 'w-16' : 'w-64'
+        'fixed inset-y-0 left-0 z-50 border-r border-border bg-background transition-all duration-300 ease-in-out',
+        isCollapsed ? 'w-16' : 'w-64',
+        // Desktop: always visible
+        'sm:translate-x-0',
+        // Mobile: off-screen by default, slides in when open
+        'translate-x-full sm:!translate-x-0',
+        isOpen ? 'translate-x-0' : 'translate-x-full'
       )}
     >
       <div className="flex h-full flex-col">
@@ -86,18 +100,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-border shrink-0">
-          <Link
-            href="/settings"
-            className={classNames(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors'
-            )}
-          >
-            <Settings className="w-4 h-4 shrink-0" />
-            {!isCollapsed && <span>Settings</span>}
-          </Link>
-        </div>
       </div>
     </aside>
   );
