@@ -19,7 +19,8 @@ export default async function LeadEditPage({ params }: { params: { id: string } 
     redirect('/login');
   }
 
-  const lead = await getLead(params.id);
+  const { id } = await params;
+  const lead = await getLead(id);
 
   return <EditLeadForm lead={lead} />;
 }

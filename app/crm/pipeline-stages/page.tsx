@@ -24,10 +24,7 @@ export default async function PipelineStagesPage({
   }
 
   const page = Math.max(1, parseInt(String(searchParams.page ?? '1'), 10));
-  const pageSize = Math.min(
-    100,
-    Math.max(1, parseInt(String(searchParams.pageSize ?? '20'), 10))
-  );
+  const pageSize = Math.min(100, Math.max(1, parseInt(String(searchParams.pageSize ?? '20'), 10)));
   const search = String(searchParams.search ?? '');
   const pipelineId = String(searchParams.pipelineId ?? '');
 
@@ -165,12 +162,12 @@ export default async function PipelineStagesPage({
                       )}
                     </td>
                     <td className="py-4">
-                      <a
+                      <Link
                         href={`/crm/pipeline-stages/${stage.id}/edit`}
                         className="text-accent hover:underline text-sm"
                       >
                         Edit
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 )

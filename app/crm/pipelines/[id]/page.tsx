@@ -26,7 +26,8 @@ export default async function PipelineDetailPage({
     redirect('/login');
   }
 
-  const pipeline = await getPipeline(params.id);
+  const { id } = await params;
+  const pipeline = await getPipeline(id);
 
   const page = Math.max(1, parseInt(String(searchParams.page ?? '1'), 10));
   const pageSize = Math.min(100, Math.max(1, parseInt(String(searchParams.pageSize ?? '20'), 10)));
@@ -158,12 +159,12 @@ export default async function PipelineDetailPage({
                       )}
                     </td>
                     <td className="py-4">
-                      <a
+                      <Link
                         href={`/crm/pipeline-stages/${stage.id}/edit?pipelineId=${pipeline.id}`}
                         className="text-accent hover:underline text-sm"
                       >
                         Edit
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 )
