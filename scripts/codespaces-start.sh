@@ -36,6 +36,7 @@ WORKSPACE_DIR="${WORKSPACE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$WORKSPACE_DIR"
 
 NEXT_DEV_LOG="${NEXT_DEV_LOG:-$WORKSPACE_DIR/.next-dev.log}"
+DOCKER_SOCKET_SETUP_SCRIPT="${WORKSPACE_DIR}/.devcontainer/setup-docker-socket.sh"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -224,6 +225,13 @@ start_nextjs() {
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+# Ensure Docker socket access before any Docker commands.
+if [[ -f "$DOCKER_SOCKET_SETUP_SCRIPT" ]]; then
+  bash "$DOCKER_SOCKET_SETUP_SCRIPT"
+else
+  warn "Docker socket setup script not found at $DOCKER_SOCKET_SETUP_SCRIPT."
+fi
+
 MODE="${1:-full}"
 
 case "$MODE" in
