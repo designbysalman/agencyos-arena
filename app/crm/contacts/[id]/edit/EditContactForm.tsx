@@ -69,8 +69,8 @@ export function EditContactForm({ contact }: EditContactFormProps) {
 
       router.push(`/crm/contacts/${contact.id}`);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to update contact');
+    } catch {
+      setError('Unable to update contact');
     } finally {
       setIsLoading(false);
     }
@@ -216,9 +216,15 @@ export function EditContactForm({ contact }: EditContactFormProps) {
                   fetch(`/api/v1/crm/contacts/${contact.id}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                  }).then(() => {
+                  }).then((res) => {
+                    if (!res.ok) {
+                      setError('Unable to archive contact');
+                      return;
+                    }
                     router.push('/crm/contacts');
                     router.refresh();
+                  }).catch(() => {
+                    setError('Unable to archive contact');
                   });
                 }
               }}

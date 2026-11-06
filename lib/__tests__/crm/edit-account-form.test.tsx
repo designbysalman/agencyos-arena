@@ -189,13 +189,15 @@ describe('EditAccountForm - cancel and archive', () => {
     expect(mockPush).toHaveBeenCalledWith('/crm/accounts/account_123');
   });
 
-  it('archives account on archive button click', () => {
+  it('archives account on archive button click', async () => {
     const mockConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<EditAccountForm account={mockAccount} />);
 
     const archiveButtons = screen.getAllByRole('button', { name: /Archive Account/ });
     expect(archiveButtons.length).toBeGreaterThan(0);
     fireEvent.click(archiveButtons[0]);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mockConfirm).toHaveBeenCalledWith('Archive this account?');
     expect(mockPush).toHaveBeenCalledWith('/crm/accounts');

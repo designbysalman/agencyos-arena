@@ -57,8 +57,8 @@ export function EditAccountForm({ account }: EditAccountFormProps) {
 
       router.push(`/crm/accounts/${account.id}`);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to update account');
+    } catch {
+      setError('Unable to update account');
     } finally {
       setIsLoading(false);
     }
@@ -154,9 +154,15 @@ export function EditAccountForm({ account }: EditAccountFormProps) {
                   fetch(`/api/v1/crm/accounts/${account.id}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                  }).then(() => {
+                  }).then((res) => {
+                    if (!res.ok) {
+                      setError('Unable to archive account');
+                      return;
+                    }
                     router.push('/crm/accounts');
                     router.refresh();
+                  }).catch(() => {
+                    setError('Unable to archive account');
                   });
                 }
               }}

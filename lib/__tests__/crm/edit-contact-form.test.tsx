@@ -195,7 +195,7 @@ describe('EditContactForm - cancel and archive', () => {
     expect(mockPush).toHaveBeenCalledWith('/crm/contacts/contact_123');
   });
 
-  it('archives contact on archive button click', () => {
+  it('archives contact on archive button click', async () => {
     const mockConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const mockFetchDelete = vi.fn();
     // Override fetch for DELETE calls
@@ -215,6 +215,8 @@ describe('EditContactForm - cancel and archive', () => {
     const archiveButtons = screen.getAllByRole('button', { name: /Archive Contact/ });
     expect(archiveButtons.length).toBeGreaterThan(0);
     fireEvent.click(archiveButtons[0]);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mockConfirm).toHaveBeenCalledWith('Archive this contact?');
     expect(mockPush).toHaveBeenCalledWith('/crm/contacts');
