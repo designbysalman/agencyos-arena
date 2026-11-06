@@ -95,12 +95,16 @@ describeIfDb('Authentication session integration (real PostgreSQL)', () => {
     await prisma.user.delete({ where: { id: user.id } });
   });
 
-  it('GET /api/auth/get-session returns 401 without valid session', async () => {
+  it('GET /api/auth/get-session has no valid session without authentication', async () => {
     const res = await fetch(`${SERVER_URL}/api/auth/get-session`, {
       method: 'GET',
       headers: { Accept: 'application/json' },
     });
-    expect(res.status).not.toBe(200);
+    const body = await res.json();
+    // Better Auth may return 200 with null session or 401 for unauthenticated requests.
+    // The security contract is: no valid session or user is returned.
+    expect(body.session).toBeNull();
+    expect(body.user).toBeNull();
   });
 });
 
