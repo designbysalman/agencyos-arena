@@ -36,6 +36,7 @@ WORKSPACE_DIR="${WORKSPACE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$WORKSPACE_DIR"
 
 NEXT_DEV_LOG="${NEXT_DEV_LOG:-$WORKSPACE_DIR/.next-dev.log}"
+NEXT_PID_FILE="${NEXT_PID_FILE:-$WORKSPACE_DIR/.next-dev.pid}"
 DOCKER_SOCKET_SETUP_SCRIPT="${WORKSPACE_DIR}/.devcontainer/setup-docker-socket.sh"
 
 # ---------------------------------------------------------------------------
@@ -204,19 +205,17 @@ start_nextjs() {
   export PORT="$APP_PORT"
   export NODE_ENV="${NODE_ENV:-development}"
 
-  # Start Next.js in the background so the postStartCommand can return.
-  # Logs go to a file for debugging; the dev server is accessible via
-  # the forwarded port 3001.
-  nohup npm run dev > "$NEXT_DEV_LOG" 2>&1 &
+  # Start Next.js in a detached session so it survives the postStartCommand
+  # shell exiting. `setsid` creates a new session; `nohup` ignores SIGHUP.
+  # Output goes to a log file for debugging.
+  setsid nohup npm run dev > "$NEXT_DEV_LOG" 2>&1 &
   local nextjs_pid=$!
+  echo "$nextjs_pid" > "$NEXT_PID_FILE"
   log "Next.js dev server launched (pid $nextjs_pid). Logs: ${NEXT_DEV_LOG}"
 
-  # Give the process a moment to either start or fail immediately.
-  sleep 3
-  if ! kill -0 "$nextjs_pid" 2>/dev/null; then
-    error "Next.js process (pid $nextjs_pid) exited immediately. Check logs: ${NEXT_DEV_LOG}"
-  fi
-
+  # Wait for Next.js to become reachable. This polls the health endpoint
+  # for up to READINESS_TIMEOUT seconds, so we don't need a fixed sleep
+  # or a fragile PID check on the npm wrapper process.
   wait_for_nextjs
   log "Next.js dev server is running (pid $nextjs_pid)."
   log "Preview available at: http://localhost:${APP_PORT}"

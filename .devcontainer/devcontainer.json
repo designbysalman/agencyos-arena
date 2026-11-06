@@ -1,5 +1,5 @@
 {
-  "name": "AgencyOS \u2014 A Agent",
+  "name": "AgencyOS — A Agent",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
