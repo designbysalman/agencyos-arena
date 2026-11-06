@@ -45,10 +45,13 @@ cp .env.example .env.local
 # Generate Prisma client (requires network access to prisma binaries)
 npx prisma generate
 
-# Start local development stack
+# Start local development stack (A Agent: Next.js on port 3001, PostgreSQL on host 5433)
 docker compose up
 
-# The app runs at http://localhost:3000
+# The app runs at http://localhost:3001
+# PostgreSQL is available at localhost:5433 (mapped to container port 5432)
+# Ports are configurable via POSTGRES_HOST_PORT, POSTGRES_INTERNAL_PORT, and APP_PORT env vars.
+# CI continues to use localhost:3000/5432; this compose file is for A Agent local preview only.
 ```
 
 ### Database
@@ -84,6 +87,7 @@ npx tsc --noEmit   # TypeScript type check
 ## Branch Strategy
 
 - `arena/56716fe0-agencyos-arena` — main development branch (PR #1 target)
+- `arena/0f30cd20-agencyos-arena` — Phase 1 stabilization branch (lead duplicate detection, org isolation, audit consistency)
 - `feature/phase-0-foundation` — Phase 0 implementation branch
 - No direct commits to `main`; all changes via pull request
 

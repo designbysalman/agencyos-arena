@@ -217,12 +217,24 @@ async function detectDuplicate(
     where.id = { not: excludeId };
   }
 
+  // Only match with meaningful, deterministic identifiers.
+  // Never perform broad organization-only matching (where = { organizationId, deletedAt: null } alone).
   if (input.contactId) {
     where.contactId = input.contactId;
+    if (input.source) where.source = input.source;
+    if (input.status) where.status = input.status;
   } else if (input.accountId && input.source && input.status) {
     where.accountId = input.accountId;
     where.source = input.source;
     where.status = input.status;
+  } else if (input.source && input.status) {
+    // Source + status without contact/account — still meaningful for dedup,
+    // not broad org-only matching.
+    where.source = input.source;
+    where.status = input.status;
+  } else {
+    // Not enough identifiers for deterministic matching — no duplicate.
+    return { isDuplicate: false, duplicateId: null };
   }
 
   const duplicate = await prisma.lead.findFirst({ where });
@@ -368,6 +380,42 @@ export async function createLead(input: LeadCreateInput, overrideDuplicate = fal
     }
   }
 
+  // Validate pipeline membership if pipelineId is provided
+  if (input.pipelineId) {
+    const pipeline = await prisma.pipeline.findFirst({
+      where: { id: input.pipelineId, organizationId },
+    });
+    if (!pipeline) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+  }
+
+  // Validate stage membership if stageId is provided — stage must belong
+  // to the same organization (via its pipeline). When pipelineId is given,
+  // the stage must be within that pipeline; otherwise the stage's pipeline
+  // must belong to this organization.
+  if (input.stageId) {
+    const stage = await prisma.pipelineStage.findFirst({
+      where: {
+        id: input.stageId,
+        ...(input.pipelineId ? { pipelineId: input.pipelineId } : { pipeline: { organizationId } }),
+      },
+      include: { pipeline: true },
+    });
+    if (!stage) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+    if (input.pipelineId && stage.pipelineId !== input.pipelineId) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+  }
+
   // Duplicate detection
   const { isDuplicate, duplicateId } = await detectDuplicate(organizationId, {
     contactId: input.contactId ?? null,
@@ -470,6 +518,43 @@ export async function updateLead(id: string, input: LeadUpdateInput, overrideDup
       where: { id: input.accountId, organizationId },
     });
     if (!account) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+  }
+
+  // Validate pipeline membership if pipelineId is provided
+  if (input.pipelineId !== undefined && input.pipelineId !== null) {
+    const pipeline = await prisma.pipeline.findFirst({
+      where: { id: input.pipelineId, organizationId },
+    });
+    if (!pipeline) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+  }
+
+  // Validate stage membership if stageId is provided — stage must belong
+  // to the same organization (via its pipeline). When pipelineId is given,
+  // the stage must be within that pipeline; otherwise the stage's pipeline
+  // must belong to this organization.
+  if (input.stageId !== undefined && input.stageId !== null) {
+    const pipelineId = input.pipelineId ?? existing.pipelineId ?? null;
+    const stage = await prisma.pipelineStage.findFirst({
+      where: {
+        id: input.stageId,
+        ...(pipelineId ? { pipelineId } : { pipeline: { organizationId } }),
+      },
+      include: { pipeline: true },
+    });
+    if (!stage) {
+      const error = new Error('Not found') as Error & { statusCode?: number };
+      error.statusCode = 404;
+      throw error;
+    }
+    if (pipelineId && stage.pipelineId !== pipelineId) {
       const error = new Error('Not found') as Error & { statusCode?: number };
       error.statusCode = 404;
       throw error;

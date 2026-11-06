@@ -401,13 +401,17 @@ export async function createOpportunity(input: OpportunityCreateInput) {
     }
   }
 
-  // Validate stage membership if stageId is provided
+  // Validate stage membership if stageId is provided — stage must belong
+  // to the same organization (via its pipeline). When pipelineId is given,
+  // the stage must be within that pipeline; otherwise the stage's pipeline
+  // must belong to this organization.
   if (input.stageId) {
     const stage = await prisma.pipelineStage.findFirst({
       where: {
         id: input.stageId,
-        pipelineId: input.pipelineId ?? undefined,
+        ...(input.pipelineId ? { pipelineId: input.pipelineId } : { pipeline: { organizationId } }),
       },
+      include: { pipeline: true },
     });
     if (!stage) {
       const error = new Error('Not found') as Error & { statusCode?: number };
@@ -542,14 +546,16 @@ export async function updateOpportunity(id: string, input: OpportunityUpdateInpu
     }
   }
 
-  // Validate stage membership if stageId is provided
+  // Validate stage membership if stageId is provided — stage must belong
+  // to the same organization (via its pipeline).
   if (input.stageId !== undefined && input.stageId !== null) {
     const pipelineId = input.pipelineId ?? existing.pipelineId;
     const stage = await prisma.pipelineStage.findFirst({
       where: {
         id: input.stageId,
-        pipelineId,
+        ...(pipelineId ? { pipelineId } : { pipeline: { organizationId } }),
       },
+      include: { pipeline: true },
     });
     if (!stage) {
       const error = new Error('Not found') as Error & { statusCode?: number };
@@ -557,7 +563,7 @@ export async function updateOpportunity(id: string, input: OpportunityUpdateInpu
       throw error;
     }
     // Ensure stage belongs to the same pipeline
-    if (stage.pipelineId !== pipelineId) {
+    if (pipelineId && stage.pipelineId !== pipelineId) {
       const error = new Error('Not found') as Error & { statusCode?: number };
       error.statusCode = 404;
       throw error;
@@ -566,8 +572,11 @@ export async function updateOpportunity(id: string, input: OpportunityUpdateInpu
 
   // Prevent inconsistent stage/status transitions
   if (input.stageId !== undefined && input.stageId !== null) {
-    const stage = await prisma.pipelineStage.findUnique({
-      where: { id: input.stageId },
+    const stage = await prisma.pipelineStage.findFirst({
+      where: {
+        id: input.stageId,
+        pipeline: { organizationId },
+      },
     });
     if (stage?.isWon && input.status !== undefined && input.status !== 'won') {
       const error = new Error(

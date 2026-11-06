@@ -1,5 +1,8 @@
-# AgencyOS — Phase 0 Local Development
+# AgencyOS — Phase 0 Local Development (A Agent)
 # No cloud resources are provisioned. All services run locally.
+#
+# Ports are configurable via environment variables (see .env.example).
+# CI continues to use localhost:3000; this compose file is for A Agent local preview.
 #
 # To start:   docker compose up
 # To stop:    docker compose down
@@ -14,7 +17,7 @@ services:
       POSTGRES_PASSWORD: agencyos_dev_password
       POSTGRES_DB: agencyos
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
       - agencyos_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,13 +35,14 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@postgres:5432/agencyos?schema=public"
+      DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@postgres:${POSTGRES_INTERNAL_PORT:-5432}/agencyos?schema=public"
       NEXTAUTH_SECRET: "replace-with-a-strong-secret-in-production"
       BETTER_AUTH_SECRET: "replace-with-a-strong-secret-in-production"
-      BETTER_AUTH_URL: "http://localhost:3000"
+      BETTER_AUTH_URL: "http://localhost:${APP_PORT:-3001}"
       NODE_ENV: "development"
+      PORT: "${APP_PORT:-3001}"
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3001}:${APP_PORT:-3001}"
     volumes:
       - .:/app
       - /app/node_modules
