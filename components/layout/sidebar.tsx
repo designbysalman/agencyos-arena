@@ -87,18 +87,9 @@ export function Sidebar({
               AgencyOS
             </h1>
           )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-            aria-label="Toggle sidebar"
-          >
-            <ChevronRight
-              className={classNames(
-                'w-4 h-4 transition-transform duration-200',
-                isCollapsed ? 'rotate-180' : ''
-              )}
-            />
-          </button>
+          {/* Sidebar toggle on desktop is handled by TopNav hamburger.
+              On mobile, TopNav hamburger opens/closes the drawer.
+              No duplicate toggle control in sidebar header. */}
         </div>
 
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -110,14 +101,27 @@ export function Sidebar({
                 href={item.href}
                 onClick={() => setIsOpen?.(false)}
                 className={classNames(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+                  isActive && !isCollapsed
+                    ? 'bg-accent/10 text-accent-foreground'
+                    : isActive && isCollapsed
+                      ? 'text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
+                aria-label={item.name}
               >
-                <item.icon className="w-4 h-4 shrink-0" />
-                {!isCollapsed && <span>{item.name}</span>}
+                {/* Centered square active state for collapsed mode */}
+                <div
+                  className={classNames(
+                    'flex items-center justify-center w-8 h-8 shrink-0 rounded-md transition-colors',
+                    isActive && isCollapsed
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                </div>
+                {!isCollapsed && <span className="min-w-0">{item.name}</span>}
               </Link>
             );
           })}

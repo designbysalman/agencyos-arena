@@ -33,7 +33,7 @@
   --radius: 0.5rem; /* 6px default per design spec */
 }
 
-@theme {
+.dark {
   /* AgencyOS design tokens — Dark theme */
   --color-background: #0f172a;
   --color-foreground: #f8fafc;
@@ -77,6 +77,4 @@
   }
 }
 
-.dark {
-  @apply bg-background text-foreground;
-}
+
