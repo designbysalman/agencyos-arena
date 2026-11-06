@@ -1,17 +1,18 @@
-# AgencyOS — Phase 0 Local Development (A Agent)
+# AgencyOS — A Agent Local Preview (Phase 0 + Phase 1)
 # No cloud resources are provisioned. All services run locally.
 #
 # Ports are configurable via environment variables (see .env.example).
-# CI continues to use localhost:3000; this compose file is for A Agent local preview.
+# CI continues to use localhost:3000/5432; this compose file is for A Agent local preview only.
 #
-# To start:   docker compose up
-# To stop:    docker compose down
-# To reset DB: docker compose down -v && docker compose up
+# To start:   docker compose -p agencyos-a up
+# To stop:    docker compose -p agencyos-a down
+# To reset DB: docker compose -p agencyos-a down -v && docker compose -p agencyos-a up
+
+name: agencyos-a
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: agencyos-postgres
     environment:
       POSTGRES_USER: agencyos
       POSTGRES_PASSWORD: agencyos_dev_password
@@ -19,7 +20,7 @@ services:
     ports:
       - "${POSTGRES_HOST_PORT:-5433}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
-      - agencyos_postgres_data:/var/lib/postgresql/data
+      - agencyos_a_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agencyos -d agencyos"]
       interval: 5s
@@ -30,7 +31,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: agencyos-app
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,4 +49,4 @@ services:
     command: npm run dev
 
 volumes:
-  agencyos_postgres_data:
+  agencyos_a_postgres_data:

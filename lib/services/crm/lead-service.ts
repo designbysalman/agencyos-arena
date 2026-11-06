@@ -217,7 +217,9 @@ async function detectDuplicate(
     where.id = { not: excludeId };
   }
 
-  // Only match with meaningful, deterministic identifiers.
+  // Only match with reliable, deterministic identifiers.
+  // source + status alone are not reliable duplicate identifiers — unrelated leads
+  // can legitimately share the same source and status (e.g. "website" / "new").
   // Never perform broad organization-only matching (where = { organizationId, deletedAt: null } alone).
   if (input.contactId) {
     where.contactId = input.contactId;
@@ -227,13 +229,8 @@ async function detectDuplicate(
     where.accountId = input.accountId;
     where.source = input.source;
     where.status = input.status;
-  } else if (input.source && input.status) {
-    // Source + status without contact/account — still meaningful for dedup,
-    // not broad org-only matching.
-    where.source = input.source;
-    where.status = input.status;
   } else {
-    // Not enough identifiers for deterministic matching — no duplicate.
+    // Not enough reliable identifiers for deterministic matching — no duplicate.
     return { isDuplicate: false, duplicateId: null };
   }
 

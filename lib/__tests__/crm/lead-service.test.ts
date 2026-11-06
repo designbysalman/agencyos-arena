@@ -289,9 +289,12 @@ describe('Lead service - checkDuplicate', () => {
 
     expect(result.isDuplicate).toBe(false);
     expect(result.duplicateId).toBeNull();
+    // With only source + status (no contact/account), findFirst should not be called
+    expect(mockLeadFindFirst).not.toHaveBeenCalled();
   });
 
-  it('returns duplicate when matching lead exists', async () => {
+  it('does NOT flag unrelated leads as duplicates when only source + status match', async () => {
+    // source + status alone are not reliable duplicate identifiers
     mockLeadFindFirst.mockResolvedValue({
       id: 'existing_lead',
       organizationId: orgId,
@@ -304,8 +307,81 @@ describe('Lead service - checkDuplicate', () => {
       status: 'new',
     } as LeadCreateInput);
 
+    expect(result.isDuplicate).toBe(false);
+    expect(result.duplicateId).toBeNull();
+    // findFirst should not be called without reliable identifiers
+    expect(mockLeadFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('returns duplicate when contactId + source + status match', async () => {
+    mockLeadFindFirst.mockResolvedValue({
+      id: 'existing_lead',
+      organizationId: orgId,
+    });
+
+    const result = await checkDuplicate({
+      contactId: 'contact_1',
+      source: 'website',
+      status: 'new',
+    } as LeadCreateInput);
+
     expect(result.isDuplicate).toBe(true);
     expect(result.duplicateId).toBe('existing_lead');
+    expect(mockLeadFindFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: orgId,
+        deletedAt: null,
+        contactId: 'contact_1',
+        source: 'website',
+        status: 'new',
+      },
+    });
+  });
+
+  it('returns duplicate when accountId + source + status match', async () => {
+    mockLeadFindFirst.mockResolvedValue({
+      id: 'existing_lead',
+      organizationId: orgId,
+    });
+
+    const result = await checkDuplicate({
+      accountId: 'account_1',
+      source: 'website',
+      status: 'new',
+    } as LeadCreateInput);
+
+    expect(result.isDuplicate).toBe(true);
+    expect(result.duplicateId).toBe('existing_lead');
+    expect(mockLeadFindFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: orgId,
+        deletedAt: null,
+        accountId: 'account_1',
+        source: 'website',
+        status: 'new',
+      },
+    });
+  });
+
+  it('returns no duplicate when multiple independent leads share source + status', async () => {
+    // Simulating multiple independent leads without contact/account all having
+    // source='website' and status='new' — none should be flagged as duplicates.
+    mockLeadFindFirst.mockResolvedValue(null);
+
+    const leads = [
+      { contactId: null, accountId: null, source: 'website', status: 'new' },
+      { contactId: null, accountId: null, source: 'website', status: 'new' },
+      { contactId: null, accountId: null, source: 'website', status: 'new' },
+    ] as LeadCreateInput[];
+
+    for (const lead of leads) {
+      const result = await checkDuplicate(lead);
+      expect(result.isDuplicate).toBe(false);
+      expect(result.duplicateId).toBeNull();
+    }
+
+    // findFirst should never be called for any of these leads
+    expect(mockLeadFindFirst).not.toHaveBeenCalled();
   });
 });
 
@@ -359,19 +435,23 @@ describe('Lead service - createLead', () => {
   });
 
   it('throws 409 when duplicate lead detected', async () => {
+    mockContactFindFirst.mockResolvedValue({ id: 'contact_1', organizationId: orgId });
     mockLeadFindFirst.mockResolvedValue({ id: 'existing_lead', organizationId: orgId });
 
-    await expect(createLead(createInput)).rejects.toMatchObject({
+    await expect(
+      createLead({ ...createInput, contactId: 'contact_1' })
+    ).rejects.toMatchObject({
       statusCode: 409,
     });
   });
 
   it('creates lead when overrideDuplicate is true', async () => {
+    mockContactFindFirst.mockResolvedValue({ id: 'contact_1', organizationId: orgId });
     mockLeadFindFirst.mockResolvedValue({ id: 'existing_lead', organizationId: orgId });
     mockLeadCreate.mockResolvedValue({
       id: 'new_lead',
       organizationId: orgId,
-      contactId: null,
+      contactId: 'contact_1',
       accountId: null,
       source: 'website',
       status: 'new',
@@ -385,7 +465,7 @@ describe('Lead service - createLead', () => {
     });
     mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
 
-    const result = await createLead(createInput, true);
+    const result = await createLead({ ...createInput, contactId: 'contact_1' }, true);
     expect(result.id).toBe('new_lead');
     expect(mockAuditLogCreate).toHaveBeenCalled();
     const calls = mockAuditLogCreate.mock.calls;
