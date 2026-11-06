@@ -12,7 +12,22 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-const betterAuthMock = vi.fn((config: Record<string, unknown>) => config);
+/** Shape of the config object passed to betterAuth() */
+interface AuthConfig {
+  baseURL: string;
+  trustedOrigins: string[];
+  advanced: {
+    defaultCookieAttributes: {
+      secure: boolean;
+      sameSite: string;
+      httpOnly: boolean;
+      path: string;
+    };
+  };
+  [key: string]: unknown;
+}
+
+const betterAuthMock = vi.fn((config: AuthConfig) => config);
 const prismaAdapterMock = vi.fn((_prisma: unknown, opts: Record<string, unknown>) => opts);
 
 vi.mock('better-auth', () => ({ betterAuth: betterAuthMock }));
@@ -21,7 +36,17 @@ vi.mock('@/lib/db', () => ({ prisma: {} }));
 
 const originalEnv = { ...process.env };
 
-function setEnvAndReset(env: Record<string, string | undefined>) {
+/** Set an env var, bypassing TypeScript's readonly ProcessEnv type */
+function setEnv(key: string, value: string) {
+  Object.defineProperty(process.env, key, { value, configurable: true });
+}
+
+/** Clear an env var */
+function unsetEnv(key: string) {
+  delete process.env[key];
+}
+
+function applyEnv(env: Record<string, string | undefined>) {
   for (const key of [
     'BETTER_AUTH_URL',
     'NEXT_PUBLIC_APP_URL',
@@ -29,15 +54,16 @@ function setEnvAndReset(env: Record<string, string | undefined>) {
     'NODE_ENV',
   ]) {
     if (env[key] === undefined) {
-      delete process.env[key];
+      unsetEnv(key);
     } else {
-      process.env[key] = env[key];
+      setEnv(key, env[key]);
     }
   }
   vi.resetModules();
 }
 
 afterEach(() => {
+  // Restore original env
   for (const key of Object.keys(originalEnv)) {
     process.env[key] = originalEnv[key];
   }
@@ -48,7 +74,7 @@ afterEach(() => {
     'NODE_ENV',
   ]) {
     if (!(key in originalEnv)) {
-      delete process.env[key];
+      unsetEnv(key);
     }
   }
   betterAuthMock.mockClear();
@@ -67,26 +93,26 @@ describe('Auth origin configuration', () => {
   });
 
   it('defaults to localhost:3000 baseURL when no env vars are set', async () => {
-    setEnvAndReset({});
-    process.env.NODE_ENV = 'development';
+    applyEnv({});
+    setEnv('NODE_ENV', 'development');
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.baseURL).toBe('http://localhost:3000');
     expect(config.trustedOrigins).toEqual(['http://localhost:3000']);
     expect(config.advanced.defaultCookieAttributes.secure).toBe(false);
   });
 
   it('uses BETTER_AUTH_URL as baseURL when set', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'https://curly-lamp-qv47qr54vqj5c96xx-3001.app.github.dev',
       NODE_ENV: 'development',
     });
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.baseURL).toBe('https://curly-lamp-qv47qr54vqj5c96xx-3001.app.github.dev');
     expect(config.trustedOrigins).toEqual([
       'https://curly-lamp-qv47qr54vqj5c96xx-3001.app.github.dev',
@@ -95,14 +121,14 @@ describe('Auth origin configuration', () => {
   });
 
   it('falls back to NEXT_PUBLIC_APP_URL when BETTER_AUTH_URL is not set', async () => {
-    setEnvAndReset({
+    applyEnv({
       NEXT_PUBLIC_APP_URL: 'https://example-codespace-3001.app.github.dev',
       NODE_ENV: 'development',
     });
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.baseURL).toBe('https://example-codespace-3001.app.github.dev');
     expect(config.trustedOrigins).toEqual([
       'https://example-codespace-3001.app.github.dev',
@@ -110,7 +136,7 @@ describe('Auth origin configuration', () => {
   });
 
   it('adds TRUSTED_ORIGINS entries alongside baseURL', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'https://primary-3001.app.github.dev',
       TRUSTED_ORIGINS:
         'https://secondary-3001.app.github.dev, https://tertiary-3001.app.github.dev',
@@ -119,7 +145,7 @@ describe('Auth origin configuration', () => {
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.baseURL).toBe('https://primary-3001.app.github.dev');
     expect(config.trustedOrigins).toContain('https://primary-3001.app.github.dev');
     expect(config.trustedOrigins).toContain('https://secondary-3001.app.github.dev');
@@ -128,7 +154,7 @@ describe('Auth origin configuration', () => {
   });
 
   it('deduplicates trustedOrigins when a TRUSTED_ORIGINS entry equals baseURL', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'https://dup-3001.app.github.dev',
       TRUSTED_ORIGINS: 'https://dup-3001.app.github.dev, https://extra-3001.app.github.dev',
       NODE_ENV: 'development',
@@ -136,17 +162,17 @@ describe('Auth origin configuration', () => {
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
-    const dupCount = (config.trustedOrigins as string[]).filter(
+    const config = getConfig() as AuthConfig;
+    const dupCount = config.trustedOrigins.filter(
       (o) => o === 'https://dup-3001.app.github.dev'
     ).length;
     expect(dupCount).toBe(1);
     expect(config.trustedOrigins).toContain('https://extra-3001.app.github.dev');
-    expect((config.trustedOrigins as string[]).length).toBe(2);
+    expect(config.trustedOrigins.length).toBe(2);
   });
 
   it('does not trust arbitrary external origins by default', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'http://localhost:3001',
       TRUSTED_ORIGINS: '',
       NODE_ENV: 'development',
@@ -154,7 +180,7 @@ describe('Auth origin configuration', () => {
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.baseURL).toBe('http://localhost:3001');
     expect(config.trustedOrigins).toEqual(['http://localhost:3001']);
     expect(config.trustedOrigins).not.toContain(
@@ -163,28 +189,28 @@ describe('Auth origin configuration', () => {
   });
 
   it('sets secure cookie attribute to true for HTTPS baseURL', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'https://curly-lamp-qv47qr54vqj5c96xx-3001.app.github.dev',
       NODE_ENV: 'development',
     });
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.advanced.defaultCookieAttributes.secure).toBe(true);
     expect(config.advanced.defaultCookieAttributes.sameSite).toBe('lax');
     expect(config.advanced.defaultCookieAttributes.httpOnly).toBe(true);
   });
 
   it('sets secure cookie attribute to false for HTTP localhost', async () => {
-    setEnvAndReset({
+    applyEnv({
       BETTER_AUTH_URL: 'http://localhost:3001',
       NODE_ENV: 'development',
     });
 
     await import('@/lib/auth-server');
 
-    const config = getConfig();
+    const config = getConfig() as AuthConfig;
     expect(config.advanced.defaultCookieAttributes.secure).toBe(false);
   });
 });

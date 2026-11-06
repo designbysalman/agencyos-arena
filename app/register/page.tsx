@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { signUpEmail } from '@/lib/auth-client';
+import { signUpEmail, signInEmail } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, User as UserIcon, AlertTriangle } from 'lucide-react';
 
@@ -40,7 +40,15 @@ export default function RegisterPage() {
         name: data.name,
       });
 
-      // Bootstrap the user's organization after successful sign-up
+      // Sign in explicitly to establish a session (autoSignIn is disabled,
+      // so signUpEmail does not set a session cookie). The bootstrap endpoint
+      // requires a valid authenticated session.
+      await signInEmail({
+        email: data.email,
+        password: data.password,
+      });
+
+      // Bootstrap the user's organization after successful sign-in
       const bootstrapRes = await fetch('/api/auth/bootstrap-organization', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
