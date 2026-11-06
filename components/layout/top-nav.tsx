@@ -5,24 +5,43 @@ import { Sun, Moon, Menu, LogOut } from 'lucide-react';
 
 interface TopNavProps {
   toggleSidebar: () => void;
+  toggleMobileSidebar?: () => void;
+  isMobileSidebarOpen?: boolean;
   user: { name?: string | null; email?: string | null } | null;
   onSignOut: () => Promise<void>;
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
 }
 
-export function TopNav({ toggleSidebar, user, onSignOut, theme, setTheme }: TopNavProps) {
+export function TopNav({
+  toggleSidebar,
+  toggleMobileSidebar,
+  isMobileSidebarOpen = false,
+  user,
+  onSignOut,
+  theme,
+  setTheme,
+}: TopNavProps) {
   const handleSignOut = async () => {
     await onSignOut();
+  };
+
+  const handleMenuClick = () => {
+    const isMobile = window.matchMedia('(max-width: 639px)').matches;
+    if (isMobile) {
+      (toggleMobileSidebar ?? toggleSidebar)();
+    } else {
+      toggleSidebar();
+    }
   };
 
   return (
     <header className="sticky top-0 z-40 flex h-12 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur px-4 shrink-0">
       <div className="flex items-center gap-2">
         <button
-          onClick={toggleSidebar}
+          onClick={handleMenuClick}
           className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
-          aria-label="Open sidebar"
+          aria-label={isMobileSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           <Menu className="w-5 h-5" />
         </button>
