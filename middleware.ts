@@ -4,7 +4,7 @@
  * Phase 0: Edge-safe cookie presence check for protected routes.
  *
  * This middleware runs in the Next.js Edge Runtime. It only performs a
- * lightweight cookie-presence check: if no `better-auth.session` cookie
+ * lightweight cookie-presence check: if no `better-auth.session_token` cookie
  * exists, unauthenticated requests to protected paths are redirected to login.
  *
  * Full database-backed session validation is intentionally NOT performed here.
@@ -43,11 +43,16 @@ export async function middleware(request: Request) {
   }
 
   // Edge-safe cookie presence check only.
-  // Better Auth v1.7.17 cookie name: better-auth.session_token
+  // Better Auth cookie name: better-auth.session_token
   // (cookiePrefix "better-auth" + cookieName "session_token").
+  // On HTTPS with the Secure attribute, browsers expose the cookie with a
+  // "__Secure-" prefix (e.g. __Secure-better-auth.session_token). Check both
+  // names so the middleware works on both HTTP localhost and HTTPS Codespaces.
   // No Prisma, no Better Auth, no Node.js-specific imports.
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('better-auth.session_token');
+  const sessionCookie =
+    cookieStore.get('__Secure-better-auth.session_token') ??
+    cookieStore.get('better-auth.session_token');
 
   if (!sessionCookie) {
     // No session cookie -> redirect to login for protected app routes
