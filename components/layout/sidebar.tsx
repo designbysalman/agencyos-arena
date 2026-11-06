@@ -104,9 +104,9 @@ export function Sidebar({
                 href={item.href}
                 onClick={() => setIsOpen?.(false)}
                 className={classNames(
-                  'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                   isActive && expanded
-                    ? 'bg-accent/10 text-accent-foreground'
+                    ? 'bg-accent text-accent-foreground'
                     : isActive && !expanded
                       ? 'text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
