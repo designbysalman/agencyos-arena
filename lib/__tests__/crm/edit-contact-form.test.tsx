@@ -199,7 +199,7 @@ describe('EditContactForm - cancel and archive', () => {
     const mockConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const mockFetchDelete = vi.fn();
     // Override fetch for DELETE calls
-    mockFetch.mockImplementation((url: string, options?: any) => {
+    mockFetch.mockImplementation((url: string, options?: RequestInit) => {
       if (options?.method === 'DELETE') {
         mockFetchDelete(url, options);
         return Promise.resolve(new Response(JSON.stringify({ id: 'contact_123', deletedAt: new Date() }), {

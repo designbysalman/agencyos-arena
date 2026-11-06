@@ -1,1 +1,30 @@
-/**\n * AgencyOS CRM Account Edit page.\n * Server component that fetches the account and renders the edit form.\n */\n\nimport { auth } from '@/lib/auth-server';\nimport { cookies } from 'next/headers';\nimport { redirect } from 'next/navigation';\nimport { getAccount } from '@/lib/services/crm/account-service';\nimport { EditAccountForm } from './EditAccountForm';\n\nexport default async function AccountEditPage({\n  params,\n}: {\n  params: { id: string };\n}) {\n  const cookieStore = await cookies();\n  const result = await auth.api.getSession({\n    headers: { cookie: cookieStore.toString() },\n  });\n\n  if (!result?.session || !result.user) {\n    redirect('/login');\n  }\n\n  const account = await getAccount(params.id);\n\n  return <EditAccountForm account={account} />;\n}
+/**
+ * AgencyOS CRM Account Edit page.
+ * Server component that fetches the account and renders the edit form.
+ */
+
+import { auth } from '@/lib/auth-server';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getAccount } from '@/lib/services/crm/account-service';
+import { EditAccountForm } from './EditAccountForm';
+
+export default async function AccountEditPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const cookieStore = await cookies();
+  const result = await auth.api.getSession({
+    headers: { cookie: cookieStore.toString() },
+  });
+
+  if (!result?.session || !result.user) {
+    redirect('/login');
+  }
+
+  const { id } = await params;
+  const account = await getAccount(id);
+
+  return <EditAccountForm account={account} />;
+}

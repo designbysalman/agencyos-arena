@@ -1,1 +1,174 @@
-/**\n * AgencyOS CRM Contact Detail page.\n * Server component that shows contact details with related Account info.\n */\n\nimport { auth } from '@/lib/auth-server';\nimport { cookies } from 'next/headers';\nimport { redirect } from 'next/navigation';\nimport Link from 'next/link';\nimport { getContact } from '@/lib/services/crm/contact-service';\n\nexport default async function ContactDetailPage({\n  params,\n}: {\n  params: { id: string };\n}) {\n  const cookieStore = await cookies();\n  const result = await auth.api.getSession({\n    headers: { cookie: cookieStore.toString() },\n  });\n\n  if (!result?.session || !result.user) {\n    redirect('/login');\n  }\n\n  const contact = await getContact(params.id);\n\n  return (\n    <div className=\"space-y-6 p-6\">\n      <div className=\"flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4\">\n        <div>\n          <h1 className=\"text-2xl font-bold\">\n            {contact.firstName} {contact.lastName}\n          </h1>\n          <p className=\"text-muted-foreground\">\n            {contact.email ?? 'No email'} &bull; {contact.phone ?? 'No phone'}\n          </p>\n        </div>\n        <div className=\"flex gap-2\">\n          <Link\n            href=\"/crm/contacts/new\"\n            className=\"px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:bg-accent/90\"\n          >\n            New Contact\n          </Link>\n          <Link\n            href={`/crm/contacts/${contact.id}/edit`}\n            className=\"px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80\"\n          >\n            Edit\n          </Link>\n          <Link\n            href=\"/crm/contacts\"\n            className=\"px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80\"\n          >\n            Back to Contacts\n          </Link>\n        </div>\n      </div>\n\n      <div className=\"grid grid-cols-1 md:grid-cols-3 gap-6\">\n        <div className=\"col-span-1 bg-card p-6 rounded-lg border border-border\">\n          <h2 className=\"text-sm font-semibold text-muted-foreground mb-4\">\n            Contact Details\n          </h2>\n          <dl className=\"space-y-4\">\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">First Name</dt>\n              <dd className=\"font-medium\">{contact.firstName ?? '—'}</dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Last Name</dt>\n              <dd className=\"font-medium\">{contact.lastName}</dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Email</dt>\n              <dd className=\"font-medium\">\n                {contact.email ?? <span className=\"text-muted-foreground\">—</span>}\n              </dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Phone</dt>\n              <dd className=\"font-medium\">\n                {contact.phone ?? <span className=\"text-muted-foreground\">—</span>}\n              </dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Status</dt>\n              <dd\n                className={`font-medium ${\n                  contact.status === 'active'\n                    ? 'text-green-800'\n                    : contact.status === 'inactive'\n                      ? 'text-red-800'\n                      : 'text-muted-foreground'\n                }`}\n              >\n                {contact.status}\n              </dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Source</dt>\n              <dd className=\"font-medium\">{contact.source ?? '—'}</dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Account</dt>\n              <dd className=\"font-medium\">\n                {contact.accountId ? (\n                  <Link\n                    href={`/crm/accounts/${contact.accountId}`}\n                    className=\"text-accent hover:underline\"\n                  >\n                    View Account\n                  </Link>\n                ) : (\n                  <span className=\"text-muted-foreground\">No account linked</span>\n                )}\n              </dd>\n            </div>\n            {contact.deletedAt && (\n              <div>\n                <dt className=\"text-xs text-muted-foreground\">Deleted At</dt>\n                <dd className=\"font-medium text-destructive\">\n                  {new Date(contact.deletedAt).toLocaleDateString()}\n                </dd>\n              </div>\n            )}\n          </dl>\n        </div>\n\n        <div className=\"col-span-2 bg-card p-6 rounded-lg border border-border\">\n          <h2 className=\"text-sm font-semibold text-muted-foreground mb-4\">\n            Audit Information\n          </h2>\n          <dl className=\"space-y-4\">\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Created By</dt>\n              <dd className=\"font-medium\">{contact.createdBy ?? '—'}</dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Updated By</dt>\n              <dd className=\"font-medium\">{contact.updatedBy ?? '—'}</dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Created At</dt>\n              <dd className=\"font-medium\">\n                {new Date(contact.createdAt).toLocaleDateString()}\n              </dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">Updated At</dt>\n              <dd className=\"font-medium\">\n                {new Date(contact.updatedAt).toLocaleDateString()}\n              </dd>\n            </div>\n            <div>\n              <dt className=\"text-xs text-muted-foreground\">PII Masked</dt>\n              <dd\n                className={`font-medium ${\n                  contact.isMasked ? 'text-amber-800' : 'text-muted-foreground'\n                }`}\n              >\n                {contact.isMasked ? 'Yes' : 'No'}\n              </dd>\n            </div>\n          </dl>\n        </div>\n      </div>\n    </div>\n  );\n}
+/**
+ * AgencyOS CRM Contact Detail page.
+ * Server component that shows contact details with related Account info.
+ */
+
+import { auth } from '@/lib/auth-server';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { getContact } from '@/lib/services/crm/contact-service';
+
+export default async function ContactDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const cookieStore = await cookies();
+  const result = await auth.api.getSession({
+    headers: { cookie: cookieStore.toString() },
+  });
+
+  if (!result?.session || !result.user) {
+    redirect('/login');
+  }
+
+  const { id } = await params;
+  const contact = await getContact(id);
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {contact.firstName} {contact.lastName}
+          </h1>
+          <p className="text-muted-foreground">
+            {contact.email ?? 'No email'} &bull; {contact.phone ?? 'No phone'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/crm/contacts/new"
+            className="px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:bg-accent/90"
+          >
+            New Contact
+          </Link>
+          <Link
+            href={`/crm/contacts/${contact.id}/edit`}
+            className="px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
+          >
+            Edit
+          </Link>
+          <Link
+            href="/crm/contacts"
+            className="px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
+          >
+            Back to Contacts
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="col-span-1 bg-card p-6 rounded-lg border border-border">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">
+            Contact Details
+          </h2>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs text-muted-foreground">First Name</dt>
+              <dd className="font-medium">
+                {contact.firstName ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Last Name</dt>
+              <dd className="font-medium">{contact.lastName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Email</dt>
+              <dd className="font-medium">
+                {contact.email ?? <span className="text-muted-foreground">—</span>}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Phone</dt>
+              <dd className="font-medium">
+                {contact.phone ?? <span className="text-muted-foreground">—</span>}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Status</dt>
+              <dd
+                className={`font-medium ${
+                  contact.status === 'active'
+                    ? 'text-green-800'
+                    : contact.status === 'inactive'
+                      ? 'text-red-800'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                {contact.status}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Source</dt>
+              <dd className="font-medium">{contact.source ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Account</dt>
+              <dd className="font-medium">
+                {contact.accountId ? (
+                  <Link
+                    href={`/crm/accounts/${contact.accountId}`}
+                    className="text-accent hover:underline"
+                  >
+                    View Account
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">No account linked</span>
+                )}
+              </dd>
+            </div>
+            {contact.deletedAt && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Deleted At</dt>
+                <dd className="font-medium text-destructive">
+                  {new Date(contact.deletedAt).toLocaleDateString()}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+
+        <div className="col-span-2 bg-card p-6 rounded-lg border border-border">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">
+            Audit Information
+          </h2>
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-xs text-muted-foreground">Created By</dt>
+              <dd className="font-medium">{contact.createdBy ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Updated By</dt>
+              <dd className="font-medium">{contact.updatedBy ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Created At</dt>
+              <dd className="font-medium">
+                {new Date(contact.createdAt).toLocaleDateString()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Updated At</dt>
+              <dd className="font-medium">
+                {new Date(contact.updatedAt).toLocaleDateString()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">PII Masked</dt>
+              <dd
+                className={`font-medium ${
+                  contact.isMasked ? 'text-amber-800' : 'text-muted-foreground'
+                }`}
+              >
+                {contact.isMasked ? 'Yes' : 'No'}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}

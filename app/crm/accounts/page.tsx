@@ -6,6 +6,7 @@
 import { auth } from '@/lib/auth-server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { listAccounts } from '@/lib/services/crm/account-service';
 
 export default async function AccountsPage({
@@ -39,12 +40,12 @@ export default async function AccountsPage({
     <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Accounts</h1>
-        <a
+        <Link
           href="/crm/accounts/new"
           className="px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:bg-accent/90"
         >
           New Account
-        </a>
+        </Link>
       </div>
 
       <form className="flex gap-2 max-w-sm">
