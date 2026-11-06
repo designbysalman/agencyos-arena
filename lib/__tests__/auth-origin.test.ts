@@ -34,49 +34,31 @@ vi.mock('better-auth', () => ({ betterAuth: betterAuthMock }));
 vi.mock('better-auth/adapters/prisma', () => ({ prismaAdapter: prismaAdapterMock }));
 vi.mock('@/lib/db', () => ({ prisma: {} }));
 
-const originalEnv = { ...process.env };
+const envKeys = [
+  'BETTER_AUTH_URL',
+  'NEXT_PUBLIC_APP_URL',
+  'TRUSTED_ORIGINS',
+  'NODE_ENV',
+];
 
-/** Set an env var, bypassing TypeScript's readonly ProcessEnv type */
-function setEnv(key: string, value: string) {
-  Object.defineProperty(process.env, key, { value, configurable: true });
-}
-
-/** Clear an env var */
-function unsetEnv(key: string) {
-  delete process.env[key];
-}
-
+/** Set env vars and reset module registry so auth-server re-evaluates */
 function applyEnv(env: Record<string, string | undefined>) {
-  for (const key of [
-    'BETTER_AUTH_URL',
-    'NEXT_PUBLIC_APP_URL',
-    'TRUSTED_ORIGINS',
-    'NODE_ENV',
-  ]) {
+  for (const key of envKeys) {
     if (env[key] === undefined) {
-      unsetEnv(key);
-    } else {
-      setEnv(key, env[key]);
+      vi.unstubAllEnvs();
+      break;
+    }
+  }
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined) {
+      vi.stubEnv(key, value);
     }
   }
   vi.resetModules();
 }
 
 afterEach(() => {
-  // Restore original env
-  for (const key of Object.keys(originalEnv)) {
-    process.env[key] = originalEnv[key];
-  }
-  for (const key of [
-    'BETTER_AUTH_URL',
-    'NEXT_PUBLIC_APP_URL',
-    'TRUSTED_ORIGINS',
-    'NODE_ENV',
-  ]) {
-    if (!(key in originalEnv)) {
-      unsetEnv(key);
-    }
-  }
+  vi.unstubAllEnvs();
   betterAuthMock.mockClear();
   prismaAdapterMock.mockClear();
   vi.resetModules();
@@ -90,11 +72,12 @@ describe('Auth origin configuration', () => {
   beforeEach(() => {
     betterAuthMock.mockClear();
     prismaAdapterMock.mockClear();
+    vi.unstubAllEnvs();
   });
 
   it('defaults to localhost:3000 baseURL when no env vars are set', async () => {
     applyEnv({});
-    setEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'development');
 
     await import('@/lib/auth-server');
 
