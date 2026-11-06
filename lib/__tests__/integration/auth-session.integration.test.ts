@@ -101,10 +101,13 @@ describeIfDb('Authentication session integration (real PostgreSQL)', () => {
       headers: { Accept: 'application/json' },
     });
     const body = await res.json();
-    // Better Auth may return 200 with null session or 401 for unauthenticated requests.
+    // Better Auth may return JSON null, 200 with null session, or 401
+    // for unauthenticated requests. body may be null itself.
     // The security contract is: no valid session or user is returned.
-    expect(body.session).toBeNull();
-    expect(body.user).toBeNull();
+    const session = body?.session ?? null;
+    const user = body?.user ?? null;
+    expect(session).toBeNull();
+    expect(user).toBeNull();
   });
 });
 
