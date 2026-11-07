@@ -59,6 +59,14 @@ const CRM_PERMISSION_CODES = [
   'quotation.read',
   'quotation.update',
   'quotation.delete',
+  'invoice.create',
+  'invoice.read',
+  'invoice.update',
+  'invoice.delete',
+  'project.create',
+  'project.read',
+  'project.update',
+  'project.delete',
 ];
 
 /** Validate session and return the authenticated user */

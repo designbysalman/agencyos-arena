@@ -33,7 +33,31 @@ const mockRolePermissionCreateMany = prisma.rolePermission.createMany as unknown
   typeof vi.fn
 >;
 
-const DOCUMENT_PERMISSION_CODES = [
+const CRM_PERMISSION_CODES = [
+  'contact.create',
+  'contact.read',
+  'contact.update',
+  'contact.delete',
+  'account.create',
+  'account.read',
+  'account.update',
+  'account.delete',
+  'pipeline.create',
+  'pipeline.read',
+  'pipeline.update',
+  'pipeline.delete',
+  'pipeline.stage.manage',
+  'lead.create',
+  'lead.read',
+  'lead.update',
+  'lead.delete',
+  'lead.assign',
+  'lead.convert',
+  'opportunity.create',
+  'opportunity.read',
+  'opportunity.update',
+  'opportunity.delete',
+  'opportunity.assign',
   'proposal.create',
   'proposal.read',
   'proposal.update',
@@ -42,6 +66,14 @@ const DOCUMENT_PERMISSION_CODES = [
   'quotation.read',
   'quotation.update',
   'quotation.delete',
+  'invoice.create',
+  'invoice.read',
+  'invoice.update',
+  'invoice.delete',
+  'project.create',
+  'project.read',
+  'project.update',
+  'project.delete',
 ];
 
 describe('Bootstrap document permission codes', () => {
@@ -51,20 +83,26 @@ describe('Bootstrap document permission codes', () => {
     const routePath = path.resolve(process.cwd(), 'app/api/auth/bootstrap-organization/route.ts');
     const source = fs.readFileSync(routePath, 'utf-8');
 
-    const proposalCodes = [
+    const allCodes = [
       'proposal.create',
       'proposal.read',
       'proposal.update',
       'proposal.delete',
-    ];
-    const quotationCodes = [
       'quotation.create',
       'quotation.read',
       'quotation.update',
       'quotation.delete',
+      'invoice.create',
+      'invoice.read',
+      'invoice.update',
+      'invoice.delete',
+      'project.create',
+      'project.read',
+      'project.update',
+      'project.delete',
     ];
 
-    for (const code of [...proposalCodes, ...quotationCodes]) {
+    for (const code of allCodes) {
       expect(source).toContain(`'${code}'`);
     }
   });
@@ -92,7 +130,7 @@ function simulateBackfillSelection({
 
   for (const role of adminRoles) {
     const existingCodes = new Set(role.permissions.map((rp) => rp.permission.code));
-    const missing = DOCUMENT_PERMISSION_CODES.filter((code) => !existingCodes.has(code));
+    const missing = CRM_PERMISSION_CODES.filter((code) => !existingCodes.has(code));
 
     if (missing.length > 0) {
       const permissions = permissionCodes.filter((p) => missing.includes(p.code));
@@ -139,7 +177,7 @@ describe('Backfill script logic (idempotent)', () => {
     };
     mockRoleFindMany.mockResolvedValue([adminRole]);
     mockPermissionFindMany.mockResolvedValue(
-      DOCUMENT_PERMISSION_CODES.map((code) => ({
+      CRM_PERMISSION_CODES.map((code) => ({
         id: `perm-${code}`,
         code,
       }))
@@ -148,16 +186,16 @@ describe('Backfill script logic (idempotent)', () => {
 
     const { totalAssigned, calls } = simulateBackfillSelection({
       adminRoles: [adminRole],
-      permissionCodes: DOCUMENT_PERMISSION_CODES.map((code) => ({
+      permissionCodes: CRM_PERMISSION_CODES.map((code) => ({
         id: `perm-${code}`,
         code,
       })),
     });
 
-    expect(totalAssigned).toBe(8);
+    expect(totalAssigned).toBe(40);
     expect(calls).toHaveLength(1);
     expect(calls[0].roleId).toBe('role-admin-1');
-    expect(calls[0].permissionCodes).toEqual(expect.arrayContaining(DOCUMENT_PERMISSION_CODES));
+    expect(calls[0].permissionCodes).toEqual(expect.arrayContaining(CRM_PERMISSION_CODES));
   });
 
   it('is idempotent: skips Administrator roles that already have all document permissions', async () => {
@@ -166,7 +204,7 @@ describe('Backfill script logic (idempotent)', () => {
       organizationId: 'org-1',
       isSystem: true,
       name: 'Administrator',
-      permissions: DOCUMENT_PERMISSION_CODES.map((code) => ({
+      permissions: CRM_PERMISSION_CODES.map((code) => ({
         permission: { code },
       })),
     };
@@ -200,7 +238,7 @@ describe('Backfill script logic (idempotent)', () => {
       },
     ]);
     mockPermissionFindMany.mockResolvedValue(
-      DOCUMENT_PERMISSION_CODES.map((code) => ({
+      CRM_PERMISSION_CODES.map((code) => ({
         id: `perm-${code}`,
         code,
       }))
@@ -236,12 +274,12 @@ describe('Backfill script logic (idempotent)', () => {
     };
     const firstRun = simulateBackfillSelection({
       adminRoles: [firstRunRole],
-      permissionCodes: DOCUMENT_PERMISSION_CODES.map((code) => ({
+      permissionCodes: CRM_PERMISSION_CODES.map((code) => ({
         id: `perm-${code}`,
         code,
       })),
     });
-    expect(firstRun.totalAssigned).toBe(8);
+    expect(firstRun.totalAssigned).toBe(40);
 
     // Second run: all permissions already present, assigns 0
     const secondRunRole = {
@@ -249,7 +287,7 @@ describe('Backfill script logic (idempotent)', () => {
       organizationId: 'org-1',
       isSystem: true,
       name: 'Administrator',
-      permissions: DOCUMENT_PERMISSION_CODES.map((code) => ({
+      permissions: CRM_PERMISSION_CODES.map((code) => ({
         permission: { code },
       })),
     };
@@ -261,15 +299,23 @@ describe('Backfill script logic (idempotent)', () => {
     expect(secondRun.calls).toHaveLength(0);
   });
 
-  it('ensures all 8 document permission codes are defined', () => {
-    expect(DOCUMENT_PERMISSION_CODES).toHaveLength(8);
-    expect(DOCUMENT_PERMISSION_CODES).toContain('proposal.create');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('proposal.read');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('proposal.update');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('proposal.delete');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('quotation.create');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('quotation.read');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('quotation.update');
-    expect(DOCUMENT_PERMISSION_CODES).toContain('quotation.delete');
+  it('ensures all 32 CRM permission codes are defined', () => {
+    expect(CRM_PERMISSION_CODES).toHaveLength(40);
+    expect(CRM_PERMISSION_CODES).toContain('proposal.create');
+    expect(CRM_PERMISSION_CODES).toContain('proposal.read');
+    expect(CRM_PERMISSION_CODES).toContain('proposal.update');
+    expect(CRM_PERMISSION_CODES).toContain('proposal.delete');
+    expect(CRM_PERMISSION_CODES).toContain('quotation.create');
+    expect(CRM_PERMISSION_CODES).toContain('quotation.read');
+    expect(CRM_PERMISSION_CODES).toContain('quotation.update');
+    expect(CRM_PERMISSION_CODES).toContain('quotation.delete');
+    expect(CRM_PERMISSION_CODES).toContain('invoice.create');
+    expect(CRM_PERMISSION_CODES).toContain('invoice.read');
+    expect(CRM_PERMISSION_CODES).toContain('invoice.update');
+    expect(CRM_PERMISSION_CODES).toContain('invoice.delete');
+    expect(CRM_PERMISSION_CODES).toContain('project.create');
+    expect(CRM_PERMISSION_CODES).toContain('project.read');
+    expect(CRM_PERMISSION_CODES).toContain('project.update');
+    expect(CRM_PERMISSION_CODES).toContain('project.delete');
   });
 });

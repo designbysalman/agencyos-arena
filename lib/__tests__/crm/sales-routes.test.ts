@@ -340,22 +340,18 @@ it('Automation Coming Soon route page exists', () => {
   expect(src).toContain('Roadmap: Future Phase');
 });
 
-it('Settings Coming Soon route page exists', () => {
+it('Settings page is a real functional page (not Coming Soon)', () => {
   const src = readRel('app/settings/page.tsx');
-  expect(src).toContain('DashboardClientLayout');
-  expect(src).toContain('ComingSoon');
-  expect(src).toContain("redirect('/login')");
-  expect(src).toContain('title="Settings"');
-  expect(src).toContain('Roadmap: Future Phase');
+  expect(src).not.toContain('ComingSoon');
+  expect(src).not.toContain('Roadmap: Future Phase');
+  expect(src).toContain('Organization Settings');
+  expect(src).toContain('User Profile');
+  expect(src).toContain("'use client'");
 });
 
-it('All future module routes use dynamic = force-dynamic', () => {
+it('Future-only module routes use dynamic = force-dynamic', () => {
   const automationSrc = readRel('app/automation/workflows/page.tsx');
-  const settingsSrc = readRel('app/settings/page.tsx');
-
-  for (const src of [automationSrc, settingsSrc]) {
-    expect(src).toContain("export const dynamic = 'force-dynamic'");
-  }
+  expect(automationSrc).toContain("export const dynamic = 'force-dynamic'");
 });
 
 it('Sidebar navigation remains intact with all modules listed', () => {
