@@ -37,6 +37,10 @@ model User {
 
   createdContacts Contact[]    @relation("CreatedContact")
   updatedContacts Contact[]    @relation("UpdatedContact")
+  createdProposals Proposal[]  @relation("CreatedProposal")
+  updatedProposals Proposal[]  @relation("UpdatedProposal")
+  createdQuotations Quotation[] @relation("CreatedQuotation")
+  updatedQuotations Quotation[] @relation("UpdatedQuotation")
   createdInvoices   Invoice[]  @relation("CreatedInvoice")
   updatedInvoices   Invoice[]  @relation("UpdatedInvoice")
   createdPayments   Payment[]  @relation("CreatedPayment")
@@ -115,6 +119,7 @@ model Organization {
   estimates      Estimate[]
   expenseItems   ExpenseItem[]
   proposals      Proposal[]
+  quotations     Quotation[]
   contracts      Contract[]
   documents      Document[]
   tasks          Task[]
@@ -333,6 +338,8 @@ model Contact {
   accountContacts AccountContact[]
   leads         Lead[]
   opportunities Opportunity[]
+  proposals     Proposal[]
+  quotations    Quotation[]
   creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
   updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
@@ -436,6 +443,8 @@ model Opportunity {
   lead          Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
   pipeline      Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   stage         PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  proposals     Proposal[]
+  quotations    Quotation[]
 }
 
 /// ============================================
@@ -687,20 +696,100 @@ model Notification {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
-/// Documents
+/// Documents — Proposals & Quotations (Phase 2.1)
+
 model Proposal {
   id          String   @id @default(cuid())
   organizationId String
+  number      String
   opportunityId String?
   contactId   String?
   title       String
   status      String   @default("draft")
+  subtotal    Decimal  @default(0)
+  tax         Decimal  @default(0)
   total       Decimal  @default(0)
   currency    String   @default("USD")
+  validUntil  DateTime?
+  notes       String?
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  items       ProposalLineItem[]
+  creator     User?          @relation("CreatedProposal", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater     User?          @relation("UpdatedProposal", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+}
+
+model ProposalLineItem {
+  id          String   @id @default(cuid())
+  proposalId  String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  taxRate     Decimal  @default(0)
+  amount      Decimal
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  proposal    Proposal     @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, sortOrder])
+}
+
+model Quotation {
+  id          String   @id @default(cuid())
+  organizationId String
+  number      String
+  opportunityId String?
+  contactId   String?
+  title       String
+  status      String   @default("draft")
+  subtotal    Decimal  @default(0)
+  tax         Decimal  @default(0)
+  total       Decimal  @default(0)
+  currency    String   @default("USD")
+  validUntil  DateTime?
+  notes       String?
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  items       QuotationLineItem[]
+  creator     User?          @relation("CreatedQuotation", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater     User?          @relation("UpdatedQuotation", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+}
+
+model QuotationLineItem {
+  id          String   @id @default(cuid())
+  quotationId String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  taxRate     Decimal  @default(0)
+  amount      Decimal
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  quotation   Quotation    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId, sortOrder])
 }
 
 model Contract {

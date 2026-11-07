@@ -1,0 +1,83 @@
+import { z } from 'zod';
+
+/**
+ * Zod validation schemas for Quotation CRUD operations.
+ * All schemas enforce server-side validation on every request.
+ * Organization ID is never accepted from the client - it is resolved
+ * from the authenticated user's session context.
+ */
+
+const baseQuotationSchema = z.object({
+  opportunityId: z.string().cuid().optional().nullable(),
+  contactId: z.string().cuid().optional().nullable(),
+  title: z.string().min(1, 'Title is required').max(200),
+  status: z.string().min(1).max(50).default('draft'),
+  currency: z.string().min(1).max(10).default('USD'),
+  validUntil: z.string().optional().nullable(),
+  notes: z.string().max(5000).optional().nullable(),
+});
+
+export const quotationCreateSchema = baseQuotationSchema.strict();
+
+export const quotationUpdateSchema = baseQuotationSchema
+  .partial()
+  .strict()
+  .refine(
+    (data) =>
+      data.opportunityId !== undefined ||
+      data.contactId !== undefined ||
+      data.title !== undefined ||
+      data.status !== undefined ||
+      data.currency !== undefined ||
+      data.validUntil !== undefined ||
+      data.notes !== undefined,
+    'At least one field must be provided for update'
+  );
+
+export const quotationQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  pageSize: z.coerce.number().min(1).max(100).default(20),
+  search: z.string().optional(),
+  opportunityId: z.string().cuid().optional(),
+  contactId: z.string().cuid().optional(),
+  status: z.string().optional(),
+  sortBy: z.enum(['title', 'status', 'total', 'createdAt', 'updatedAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  includeDeleted: z.coerce.boolean().default(false),
+});
+
+export type QuotationCreateInput = z.infer<typeof quotationCreateSchema>;
+export type QuotationUpdateInput = z.infer<typeof quotationUpdateSchema>;
+export type QuotationQueryInput = z.infer<typeof quotationQuerySchema>;
+
+/**
+ * Line item schema for quotations.
+ * Amounts are calculated server-side from quantity * unitPrice * (1 + taxRate).
+ */
+export const quotationLineItemSchema = z.object({
+  description: z.string().min(1, 'Description is required').max(500),
+  quantity: z.string().refine(
+    (val) => {
+      const n = Number(val);
+      return !isNaN(n) && n > 0;
+    },
+    { message: 'Quantity must be a positive number' }
+  ),
+  unitPrice: z.string().refine(
+    (val) => {
+      const n = Number(val);
+      return !isNaN(n) && n >= 0;
+    },
+    { message: 'Unit price must be a non-negative number' }
+  ),
+  taxRate: z.string().refine(
+    (val) => {
+      const n = Number(val);
+      return !isNaN(n) && n >= 0;
+    },
+    { message: 'Tax rate must be a non-negative number' }
+  ),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+});
+
+export type QuotationLineItemInput = z.infer<typeof quotationLineItemSchema>;
