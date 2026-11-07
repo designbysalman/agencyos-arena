@@ -275,3 +275,91 @@ describe('Dynamic builder edit routes (Next.js 16 async params)', () => {
     expect(src).toContain("redirect('/sales/quotations')");
   });
 });
+
+describe('Future module Coming Soon routes', () => {
+  it('Coming Soon component exists and accepts title, phase, description', () => {
+    const src = readRel('components/layout/coming-soon.tsx');
+    expect(src).toContain('export function ComingSoon');
+    expect(src).toContain('title: string');
+    expect(src).toContain('phase: string');
+    expect(src).toContain('description?: string');
+  });
+
+  it('Invoices Coming Soon route page exists', () => {
+    const src = readRel('app/finance/invoices/page.tsx');
+    expect(src).toContain('DashboardClientLayout');
+    expect(src).toContain('ComingSoon');
+    expect(src).toContain('redirect(\'/login\')');
+    expect(src).toContain('title="Invoices"');
+    expect(src).toContain('Roadmap: Future Phase');
+  });
+
+  it('Projects Coming Soon route page exists', () => {
+    const src = readRel('app/projects/page.tsx');
+    expect(src).toContain('DashboardClientLayout');
+    expect(src).toContain('ComingSoon');
+    expect(src).toContain('redirect(\'/login\')');
+    expect(src).toContain('title="Projects"');
+    expect(src).toContain('Roadmap: Future Phase');
+  });
+
+  it('Automation Coming Soon route page exists', () => {
+    const src = readRel('app/automation/workflows/page.tsx');
+    expect(src).toContain('DashboardClientLayout');
+    expect(src).toContain('ComingSoon');
+    expect(src).toContain('redirect(\'/login\')');
+    expect(src).toContain('title="Automation"');
+    expect(src).toContain('Roadmap: Future Phase');
+  });
+
+  it('Settings Coming Soon route page exists', () => {
+    const src = readRel('app/settings/page.tsx');
+    expect(src).toContain('DashboardClientLayout');
+    expect(src).toContain('ComingSoon');
+    expect(src).toContain('redirect(\'/login\')');
+    expect(src).toContain('title="Settings"');
+    expect(src).toContain('Roadmap: Future Phase');
+  });
+
+  it('All future module routes use dynamic = force-dynamic', () => {
+    const invoicesSrc = readRel('app/finance/invoices/page.tsx');
+    const projectsSrc = readRel('app/projects/page.tsx');
+    const automationSrc = readRel('app/automation/workflows/page.tsx');
+    const settingsSrc = readRel('app/settings/page.tsx');
+
+    for (const src of [invoicesSrc, projectsSrc, automationSrc, settingsSrc]) {
+      expect(src).toContain("export const dynamic = 'force-dynamic'");
+    }
+  });
+
+  it('Sidebar navigation remains intact with all modules listed', () => {
+    const src = readRel('components/layout/sidebar.tsx');
+    const expected = [
+      '/dashboard',
+      '/crm/contacts',
+      '/crm/accounts',
+      '/crm/pipelines',
+      '/crm/leads',
+      '/crm/opportunities',
+      '/sales/proposals',
+      '/sales/quotations',
+      '/finance/invoices',
+      '/projects',
+      '/automation/workflows',
+      '/settings',
+    ];
+    for (const href of expected) {
+      expect(src).toContain(`href: '${href}'`);
+    }
+  });
+
+  it('Coming Soon pages do not present modules as functional', () => {
+    const src = readRel('components/layout/coming-soon.tsx');
+    expect(src).toContain('Coming Soon');
+    expect(src).toContain('not yet available');
+    expect(src).not.toContain('create');
+    expect(src).not.toContain('update');
+    expect(src).not.toContain('delete');
+    expect(src).not.toContain('submit');
+  });
+});
