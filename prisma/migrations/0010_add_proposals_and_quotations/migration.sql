@@ -12,6 +12,35 @@ ALTER TABLE "Proposal" ADD COLUMN "deletedAt" TIMESTAMP(3);
 ALTER TABLE "Proposal" ADD COLUMN "createdBy" TEXT;
 ALTER TABLE "Proposal" ADD COLUMN "updatedBy" TEXT;
 
+-- Backfill document numbers for existing Proposal records (org-scoped, sequential)
+DO $$
+DECLARE
+    org_rec RECORD;
+    prop_rec RECORD;
+    seq INTEGER;
+    prefix TEXT := 'PRP';
+    year TEXT;
+BEGIN
+    year := to_char(CURRENT_TIMESTAMP, 'YYYY');
+    FOR org_rec IN SELECT DISTINCT "organizationId" FROM "Proposal" LOOP
+        seq := 0;
+        FOR prop_rec IN
+            SELECT "id" FROM "Proposal"
+            WHERE "organizationId" = org_rec."organizationId"
+              AND "number" IS NULL
+            ORDER BY "createdAt" ASC
+        LOOP
+            seq := seq + 1;
+            UPDATE "Proposal"
+            SET "number" = prefix || '-' || year || lpad(seq::TEXT, 4, '0')
+            WHERE "id" = prop_rec."id";
+        END LOOP;
+    END LOOP;
+END $$;
+
+-- Enforce NOT NULL after backfill
+ALTER TABLE "Proposal" ALTER COLUMN "number" SET NOT NULL;
+
 -- CreateTable Quotation
 CREATE TABLE "Quotation" (
     "id" TEXT NOT NULL,

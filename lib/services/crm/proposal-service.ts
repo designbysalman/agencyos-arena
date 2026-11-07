@@ -166,43 +166,117 @@ async function createAuditLog({
 }
 
 /** Generate the next document number for an organization */
+/** Generate the next document number for an organization (concurrency-safe with retry) */
 async function generateDocumentNumber(organizationId: string, prefix: string): Promise<string> {
   const now = new Date();
   const year = now.getFullYear().toString();
+  const prefixPattern = `${prefix}-${year}`;
 
-  // Count existing documents with this prefix in this organization for this year
-  const existing = await prisma.proposal.count({
-    where: {
-      organizationId,
-      number: {
-        startsWith: `${prefix}-${year}`,
-      },
-    },
-  });
+  const MAX_RETRIES = 5;
 
-  const seq = (existing + 1).toString().padStart(4, '0');
-  return `${prefix}-${year}${seq}`;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const result = await prisma.$transaction(async (tx: typeof prisma) => {
+        const last = await tx.proposal.findFirst({
+          where: {
+            organizationId,
+            number: {
+              startsWith: prefixPattern,
+            },
+          },
+          orderBy: { number: 'desc' },
+          select: { number: true },
+        });
+
+        let seq = 1;
+        if (last?.number) {
+          const match = last.number.match(/-(\d+)$/);
+          if (match) {
+            seq = parseInt(match[1], 10) + 1;
+          }
+        }
+
+        const nextNumber = `${prefixPattern}-${seq.toString().padStart(4, '0')}`;
+
+        // Check for collision (another concurrent tx may have committed this number)
+        const existing = await tx.proposal.findUnique({
+          where: {
+            organizationId_number: {
+              organizationId,
+              number: nextNumber,
+            },
+          },
+        });
+
+        if (existing) {
+          throw new Error('NUMBER_COLLISION');
+        }
+
+        return nextNumber;
+      });
+
+      if (result) {
+        return result;
+      }
+    } catch (err) {
+      if ((err as Error).message !== 'NUMBER_COLLISION') {
+        throw err;
+      }
+      // Collision detected, retry with next sequence
+      continue;
+    }
+  }
+
+  const error = new Error('Failed to generate unique document number') as Error & {
+    statusCode?: number;
+  };
+  error.statusCode = 500;
+  throw error;
 }
 
-/** Calculate line item totals */
+/** Convert a decimal string to cents (integer) for safe money math */
+function toCents(value: string | number): number {
+  const num = typeof value === 'string' ? parseDecimal(value) : value;
+  return Math.round(num * 100);
+}
+
+/** Parse a decimal string safely, defaulting to 0 */
+function parseDecimal(value: string): number {
+  const parsed = Number(value);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/** Format cents as a 2-decimal string */
+function formatMoney(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+/** Calculate line item totals using integer (cent) math to avoid floating-point errors */
 function calculateLineItemTotals(items: ProposalLineItemInput[]) {
-  let subtotal = 0;
-  let tax = 0;
+  let subtotalCents = 0;
+  let taxCents = 0;
 
   for (const item of items) {
-    const qty = Number(item.quantity);
-    const price = Number(item.unitPrice);
-    const rate = Number(item.taxRate);
-    const itemAmount = qty * price;
-    const itemTax = itemAmount * (rate / 100);
-    subtotal += itemAmount;
-    tax += itemTax;
+    const qtyCents = toCents(item.quantity);
+    const priceCents = toCents(item.unitPrice);
+    const rate = parseDecimal(item.taxRate);
+
+    // itemAmount in cents: qty * price (both already in cents, so divide by 100)
+    const itemAmountCents = Math.round((qtyCents * priceCents) / 100);
+    // itemTax in cents: itemAmount * rate / 100
+    const itemTaxCents = Math.round((itemAmountCents * rate) / 100);
+
+    subtotalCents += itemAmountCents;
+    taxCents += itemTaxCents;
   }
 
   return {
-    subtotal: Math.round(subtotal * 100) / 100,
-    tax: Math.round(tax * 100) / 100,
-    total: Math.round((subtotal + tax) * 100) / 100,
+    subtotal: formatMoney(subtotalCents),
+    tax: formatMoney(taxCents),
+    total: formatMoney(subtotalCents + taxCents),
+    subtotalCents,
+    taxCents,
+    totalCents: subtotalCents + taxCents,
   };
 }
 
@@ -397,14 +471,19 @@ export async function createProposal(
       createdBy: userId,
       updatedBy: userId,
       items: {
-        create: lineItems.map((item, index) => ({
-          description: item.description,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          taxRate: Number(item.taxRate),
-          amount: Math.round(Number(item.quantity) * Number(item.unitPrice) * 100) / 100,
-          sortOrder: item.sortOrder ?? index,
-        })),
+        create: lineItems.map((item, index) => {
+          const qtyCents = toCents(item.quantity);
+          const priceCents = toCents(item.unitPrice);
+          const itemAmountCents = Math.round((qtyCents * priceCents) / 100);
+          return {
+            description: item.description,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice),
+            taxRate: Number(item.taxRate),
+            amount: formatMoney(itemAmountCents),
+            sortOrder: item.sortOrder ?? index,
+          };
+        }),
       },
     },
     include: {
@@ -506,9 +585,9 @@ export async function updateProposal(
   }
 
   // Calculate totals from line items if provided (server-side, never trust client)
-  let subtotal = existing.subtotal;
-  let tax = existing.tax;
-  let total = existing.total;
+  let subtotal = formatMoney(toCents(existing.subtotal));
+  let tax = formatMoney(toCents(existing.tax));
+  let total = formatMoney(toCents(existing.total));
 
   if (lineItems) {
     const { subtotal: s, tax: t, total: tot } = calculateLineItemTotals(lineItems);
@@ -540,14 +619,19 @@ export async function updateProposal(
         ? {
             items: {
               deleteMany: {},
-              create: lineItems.map((item, index) => ({
-                description: item.description,
-                quantity: Number(item.quantity),
-                unitPrice: Number(item.unitPrice),
-                taxRate: Number(item.taxRate),
-                amount: Math.round(Number(item.quantity) * Number(item.unitPrice) * 100) / 100,
-                sortOrder: item.sortOrder ?? index,
-              })),
+              create: lineItems.map((item, index) => {
+                const qtyCents = toCents(item.quantity);
+                const priceCents = toCents(item.unitPrice);
+                const itemAmountCents = Math.round((qtyCents * priceCents) / 100);
+                return {
+                  description: item.description,
+                  quantity: Number(item.quantity),
+                  unitPrice: Number(item.unitPrice),
+                  taxRate: Number(item.taxRate),
+                  amount: formatMoney(itemAmountCents),
+                  sortOrder: item.sortOrder ?? index,
+                };
+              }),
             },
           }
         : {}),

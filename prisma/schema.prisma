@@ -338,6 +338,8 @@ model Contact {
   accountContacts AccountContact[]
   leads         Lead[]
   opportunities Opportunity[]
+  proposals     Proposal[]     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  quotations    Quotation[]    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
   updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
@@ -441,6 +443,8 @@ model Opportunity {
   lead          Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
   pipeline      Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   stage         PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  proposals     Proposal[]     @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  quotations    Quotation[]    @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 }
 
 /// ============================================

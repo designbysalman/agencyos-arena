@@ -18,6 +18,7 @@ vi.mock('@/lib/db', () => ({
     quotation: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
@@ -122,7 +123,12 @@ beforeEach(() => {
   mockAuth();
   mockRequireOrganization.mockResolvedValue({ organizationId: orgId });
   mockRequirePermission.mockResolvedValue(undefined);
-  mockTransaction.mockImplementation((promises) => Promise.all(promises));
+  mockTransaction.mockImplementation((arg: unknown) => {
+    if (Array.isArray(arg)) {
+      return Promise.all(arg);
+    }
+    return (arg as (tx: typeof prisma) => unknown)(prisma);
+  });
 });
 
 describe('Quotation service - listQuotations', () => {
@@ -136,9 +142,9 @@ describe('Quotation service - listQuotations', () => {
         contactId: null,
         title: 'Test Quotation',
         status: 'draft',
-        subtotal: 1000,
-        tax: 100,
-        total: 1100,
+        subtotal: '1000.00',
+        tax: '100.00',
+        total: '1100.00',
         currency: 'USD',
         validUntil: null,
         notes: null,
@@ -206,9 +212,9 @@ describe('Quotation service - getQuotation', () => {
       contactId: null,
       title: 'Test Quotation',
       status: 'draft',
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
+      subtotal: '1000.00',
+      tax: '100.00',
+      total: '1100.00',
       currency: 'USD',
       validUntil: null,
       notes: null,
@@ -272,9 +278,9 @@ describe('Quotation service - createQuotation', () => {
       contactId: null,
       title: 'Test Quotation',
       status: 'draft',
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
+      subtotal: '1000.00',
+      tax: '100.00',
+      total: '1100.00',
       currency: 'USD',
       validUntil: null,
       notes: null,
@@ -296,16 +302,16 @@ describe('Quotation service - createQuotation', () => {
           title: 'Test Quotation',
           status: 'draft',
           currency: 'USD',
-          subtotal: 1000,
-          tax: 100,
-          total: 1100,
+          subtotal: '1000.00',
+          tax: '100.00',
+          total: '1100.00',
         }),
       })
     );
     expect(mockAuditLogCreate).toHaveBeenCalled();
     expect(result.title).toBe('Test Quotation');
-    expect(result.subtotal).toBe('1000');
-    expect(result.total).toBe('1100');
+    expect(result.subtotal).toBe('1000.00');
+    expect(result.total).toBe('1100.00');
   });
 
   it('calculates totals server-side from line items', async () => {
@@ -317,9 +323,9 @@ describe('Quotation service - createQuotation', () => {
       contactId: null,
       title: 'Test Quotation',
       status: 'draft',
-      subtotal: 2000,
-      tax: 200,
-      total: 2200,
+      subtotal: '2000.00',
+      tax: '200.00',
+      total: '2200.00',
       currency: 'USD',
       validUntil: null,
       notes: null,
@@ -342,9 +348,9 @@ describe('Quotation service - createQuotation', () => {
     expect(mockQuotationCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          subtotal: 2000,
-          tax: 200,
-          total: 2200,
+          subtotal: '2000.00',
+          tax: '200.00',
+          total: '2200.00',
         }),
       })
     );
@@ -391,9 +397,9 @@ describe('Quotation service - updateQuotation', () => {
       contactId: null,
       title: 'Test Quotation',
       status: 'draft',
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
+      subtotal: '1000.00',
+      tax: '100.00',
+      total: '1100.00',
       currency: 'USD',
       validUntil: null,
       notes: null,
@@ -409,9 +415,9 @@ describe('Quotation service - updateQuotation', () => {
       organizationId: orgId,
       title: 'Updated Quotation',
       status: 'draft',
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
+      subtotal: '1000.00',
+      tax: '100.00',
+      total: '1100.00',
       currency: 'USD',
       validUntil: null,
       notes: null,

@@ -18,6 +18,7 @@ vi.mock('@/lib/db', () => ({
     proposal: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
@@ -76,6 +77,7 @@ import type {
 
 const mockProposalFindMany = prisma.proposal.findMany as unknown as ReturnType<typeof vi.fn>;
 const mockProposalFindFirst = prisma.proposal.findFirst as unknown as ReturnType<typeof vi.fn>;
+const mockProposalFindUnique = prisma.proposal.findUnique as unknown as ReturnType<typeof vi.fn>;
 const mockProposalCreate = prisma.proposal.create as unknown as ReturnType<typeof vi.fn>;
 const mockProposalUpdate = prisma.proposal.update as unknown as ReturnType<typeof vi.fn>;
 const mockProposalCount = prisma.proposal.count as unknown as ReturnType<typeof vi.fn>;
@@ -122,7 +124,13 @@ beforeEach(() => {
   mockAuth();
   mockRequireOrganization.mockResolvedValue({ organizationId: orgId });
   mockRequirePermission.mockResolvedValue(undefined);
-  mockTransaction.mockImplementation((promises) => Promise.all(promises));
+  mockTransaction.mockImplementation((arg: unknown) => {
+    if (Array.isArray(arg)) {
+      return Promise.all(arg);
+    }
+    // Callback form: prisma.$transaction(async (tx) => { ... })
+    return (arg as (tx: typeof prisma) => unknown)(prisma);
+  });
 });
 
 describe('Proposal service - listProposals', () => {
@@ -272,9 +280,9 @@ describe('Proposal service - createProposal', () => {
       contactId: null,
       title: 'Test Proposal',
       status: 'draft',
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
+      subtotal: '1000.00',
+      tax: '100.00',
+      total: '1100.00',
       currency: 'USD',
       validUntil: null,
       notes: null,
@@ -296,16 +304,16 @@ describe('Proposal service - createProposal', () => {
           title: 'Test Proposal',
           status: 'draft',
           currency: 'USD',
-          subtotal: 1000,
-          tax: 100,
-          total: 1100,
+          subtotal: '1000.00',
+          tax: '100.00',
+          total: '1100.00',
         }),
       })
     );
     expect(mockAuditLogCreate).toHaveBeenCalled();
     expect(result.title).toBe('Test Proposal');
-    expect(result.subtotal).toBe('1000');
-    expect(result.total).toBe('1100');
+    expect(result.subtotal).toBe('1000.00');
+    expect(result.total).toBe('1100.00');
   });
 
   it('calculates totals server-side from line items', async () => {
@@ -342,9 +350,9 @@ describe('Proposal service - createProposal', () => {
     expect(mockProposalCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          subtotal: 2000,
-          tax: 200,
-          total: 2200,
+          subtotal: '2000.00',
+          tax: '200.00',
+          total: '2200.00',
         }),
       })
     );
@@ -543,5 +551,200 @@ describe('Proposal service - deleteProposal', () => {
     await expect(deleteProposal(proposalId)).rejects.toMatchObject({
       statusCode: 400,
     });
+  });
+});
+
+describe('Proposal service - document number concurrency', () => {
+  it('generates unique numbers under concurrent calls (no collisions)', async () => {
+    // Simulate concurrent calls all trying to generate numbers
+    mockTransaction.mockImplementation((arg: unknown) => {
+      if (Array.isArray(arg)) {
+        return Promise.all(arg);
+      }
+      // Callback form: prisma.$transaction(async (tx) => { ... })
+      return (arg as (tx: typeof prisma) => unknown)(prisma);
+    });
+
+    const localCreateInput = {
+      title: 'Test Proposal',
+      status: 'draft',
+      currency: 'USD',
+      contactId: null,
+      opportunityId: null,
+      validUntil: null,
+      notes: null,
+    } as ProposalCreateInput;
+
+    // First call returns PRP-2026-0001, second finds collision and retries
+    mockProposalFindFirst
+      .mockResolvedValueOnce(null) // no existing, first call gets 0001
+      .mockResolvedValueOnce(null) // second call also finds none (concurrent)
+      .mockResolvedValueOnce({ number: 'PRP-2026-0001' }) // retry finds existing
+      .mockResolvedValueOnce(null) // retry again, no existing
+      .mockResolvedValueOnce(null);
+
+    mockProposalFindUnique
+      .mockResolvedValueOnce(null) // first call: no collision
+      .mockResolvedValueOnce({ id: 'existing', number: 'PRP-2026-0001' }) // second: collision!
+      .mockResolvedValueOnce(null); // retry: no collision
+
+    mockProposalCreate.mockImplementation(
+      (args: { data: { number: string; [key: string]: unknown } }) => {
+        return Promise.resolve({
+          id: proposalId,
+          organizationId: orgId,
+          number: args.data.number,
+          opportunityId: args.data.opportunityId ?? null,
+          contactId: args.data.contactId ?? null,
+          title: args.data.title,
+          status: args.data.status,
+          subtotal: args.data.subtotal,
+          tax: args.data.tax,
+          total: args.data.total,
+          currency: args.data.currency,
+          validUntil: args.data.validUntil,
+          notes: args.data.notes,
+          deletedAt: null,
+          createdBy: args.data.createdBy,
+          updatedBy: args.data.updatedBy,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          items: [],
+        });
+      }
+    );
+
+    const results = await Promise.all([
+      createProposal({ ...localCreateInput, title: 'Concurrent 1' }, [
+        { description: 'Item', quantity: '1', unitPrice: '100', taxRate: '0', sortOrder: 0 },
+      ]),
+      createProposal({ ...localCreateInput, title: 'Concurrent 2' }, [
+        { description: 'Item', quantity: '1', unitPrice: '100', taxRate: '0', sortOrder: 0 },
+      ]),
+    ]);
+
+    // Both should succeed with different numbers
+    expect(results[0].number).not.toBe(results[1].number);
+    expect(results[0].number).toMatch(/^PRP-2026-\d{4}$/);
+    expect(results[1].number).toMatch(/^PRP-2026-\d{4}$/);
+  });
+});
+
+describe('Proposal service - decimal precision', () => {
+  it('handles floating-point edge cases in monetary calculations', async () => {
+    // 0.1 + 0.2 should not produce 0.30000000000000004
+    mockProposalCreate.mockResolvedValue({
+      id: 'precision_test',
+      organizationId: orgId,
+      number: 'PRP-2026-0001',
+      opportunityId: null,
+      contactId: null,
+      title: 'Precision Test',
+      status: 'draft',
+      subtotal: '0.30',
+      tax: '0.03',
+      total: '0.33',
+      currency: 'USD',
+      validUntil: null,
+      notes: null,
+      deletedAt: null,
+      createdBy: userId,
+      updatedBy: userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: [],
+    });
+    mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
+
+    // 3 items at 0.10 each with 10% tax → subtotal 0.30, tax 0.03, total 0.33
+    const localCreateInput = {
+      title: 'Precision Test',
+      status: 'draft',
+      currency: 'USD',
+      contactId: null,
+      opportunityId: null,
+      validUntil: null,
+      notes: null,
+    } as ProposalCreateInput;
+
+    const lineItems = [
+      { description: 'Item 1', quantity: '1', unitPrice: '0.10', taxRate: '10', sortOrder: 0 },
+      { description: 'Item 2', quantity: '1', unitPrice: '0.10', taxRate: '10', sortOrder: 1 },
+      { description: 'Item 3', quantity: '1', unitPrice: '0.10', taxRate: '10', sortOrder: 2 },
+    ];
+
+    const result = await createProposal(
+      { ...localCreateInput, title: 'Precision Test' },
+      lineItems
+    );
+
+    // Verify no floating-point artifacts
+    expect(result.subtotal).toBe('0.30');
+    expect(result.tax).toBe('0.03');
+    expect(result.total).toBe('0.33');
+
+    // Verify Prisma was called with correct decimal values
+    expect(mockProposalCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          subtotal: '0.30',
+          tax: '0.03',
+          total: '0.33',
+        }),
+      })
+    );
+  });
+
+  it('handles large monetary values without precision loss', async () => {
+    mockProposalCreate.mockResolvedValue({
+      id: 'large_value_test',
+      organizationId: orgId,
+      number: 'PRP-2026-0001',
+      opportunityId: null,
+      contactId: null,
+      title: 'Large Value Test',
+      status: 'draft',
+      subtotal: '999999.99',
+      tax: '99999.99',
+      total: '1099999.98',
+      currency: 'USD',
+      validUntil: null,
+      notes: null,
+      deletedAt: null,
+      createdBy: userId,
+      updatedBy: userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: [],
+    });
+    mockAuditLogCreate.mockResolvedValue({ id: 'audit_1' });
+
+    const localCreateInput = {
+      title: 'Large Value Test',
+      status: 'draft',
+      currency: 'USD',
+      contactId: null,
+      opportunityId: null,
+      validUntil: null,
+      notes: null,
+    } as ProposalCreateInput;
+
+    const lineItems = [
+      {
+        description: 'Expensive Item',
+        quantity: '1',
+        unitPrice: '999999.99',
+        taxRate: '10',
+        sortOrder: 0,
+      },
+    ];
+
+    const result = await createProposal(
+      { ...localCreateInput, title: 'Large Value Test' },
+      lineItems
+    );
+
+    expect(result.subtotal).toBe('999999.99');
+    expect(result.total).toMatch(/^\d+\.\d{2}$/); // Always 2 decimal places
   });
 });
