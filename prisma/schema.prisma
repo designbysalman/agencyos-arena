@@ -43,6 +43,8 @@ model User {
   updatedQuotations Quotation[] @relation("UpdatedQuotation")
   createdInvoices   Invoice[]  @relation("CreatedInvoice")
   updatedInvoices   Invoice[]  @relation("UpdatedInvoice")
+  createdProjects   Project[]  @relation("CreatedProject")
+  updatedProjects   Project[]  @relation("UpdatedProject")
   createdPayments   Payment[]  @relation("CreatedPayment")
   timeEntries    TimeEntry[]
   projectFiles   ProjectFile[]
@@ -340,6 +342,8 @@ model Contact {
   opportunities Opportunity[]
   proposals     Proposal[]
   quotations    Quotation[]
+  invoices      Invoice[]
+  projects      Project[]
   creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
   updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
@@ -455,13 +459,16 @@ model Invoice {
   id            String   @id @default(cuid())
   organizationId String
   number        String
-  clientId      String
+  title         String
+  clientId      String?
   status        String   @default("draft")
   subtotal      Decimal  @default(0)
   tax           Decimal  @default(0)
   total         Decimal  @default(0)
   currency      String   @default("USD")
   dueDate       DateTime?
+  notes         String?
+  deletedAt     DateTime?
   idempotencyKey String?
   createdBy     String?
   updatedBy     String?
@@ -469,6 +476,7 @@ model Invoice {
   updatedAt   DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client        Contact?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   items         InvoiceItem[]
   payments      Payment[]
   creator       User?   @relation("CreatedInvoice", fields: [createdBy], references: [id], onDelete: SetNull)
@@ -541,15 +549,22 @@ model Project {
   organizationId String
   clientId    String?
   name        String
+  description String?
   status      String   @default("active")
   budget      Decimal?
   startDate   DateTime?
   endDate     DateTime?
   templateId  String?
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client      Contact?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  creator     User?      @relation("CreatedProject", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater     User?      @relation("UpdatedProject", fields: [updatedBy], references: [id], onDelete: SetNull)
   tasks       Task[]
   milestones  Milestone[]
   changeOrders ChangeOrder[]
