@@ -46,7 +46,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
 
     const body = await request.json();
-    const parsed = quotationUpdateSchema.safeParse(body);
+    // Strip lineItems before strict Zod validation (validated separately below)
+    const { lineItems: lineItemsRaw, ...updateInput } = body;
+    const parsed = quotationUpdateSchema.safeParse(updateInput);
     if (!parsed.success) {
       return errorResponse('Invalid request body', 400, parsed.error.issues);
     }
@@ -62,13 +64,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }>
       | undefined;
 
-    if (body.lineItems !== undefined) {
-      if (!Array.isArray(body.lineItems) || body.lineItems.length === 0) {
+    if (lineItemsRaw !== undefined) {
+      if (!Array.isArray(lineItemsRaw) || lineItemsRaw.length === 0) {
         return errorResponse('At least one line item is required', 400);
       }
 
       lineItems = [];
-      for (const item of body.lineItems) {
+      for (const item of lineItemsRaw) {
         const itemParsed = quotationLineItemSchema.safeParse(item);
         if (!itemParsed.success) {
           return errorResponse('Invalid line item', 400, itemParsed.error.issues);

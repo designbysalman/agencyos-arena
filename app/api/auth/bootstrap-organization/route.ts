@@ -51,6 +51,14 @@ const CRM_PERMISSION_CODES = [
   'opportunity.update',
   'opportunity.delete',
   'opportunity.assign',
+  'proposal.create',
+  'proposal.read',
+  'proposal.update',
+  'proposal.delete',
+  'quotation.create',
+  'quotation.read',
+  'quotation.update',
+  'quotation.delete',
 ];
 
 /** Validate session and return the authenticated user */

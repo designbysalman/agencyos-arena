@@ -1,23 +1,14 @@
 /**
  * AgencyOS Sales Quotation Edit page.
- * Server component that authenticates and passes the quotation ID to the client form.
- */
+ * * Redirects to the Phase 2.2 Live Preview Builder for editing an existing * quotation. Preserves the /sales/quotations/[id]/edit route as the entry point. * The builder loads the saved quotation values and line items from the API. */
 
-import { auth } from '@/lib/auth-server';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import EditQuotationForm from './EditQuotationForm';
 
-export default async function QuotationEditPage({ params }: { params: { id: string } }) {
-  const cookieStore = await cookies();
-  const result = await auth.api.getSession({
-    headers: { cookie: cookieStore.toString() },
-  });
-
-  if (!result?.session || !result.user) {
-    redirect('/login');
-  }
-
-  const { id } = await params;
-  return <EditQuotationForm initialId={id} />;
+export default function QuotationEditPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  redirect(`/sales/quotations/builder/${params.id}`);
 }
+
