@@ -181,3 +181,97 @@ describe('Phase 2.1 list/detail pages remain accessible', () => {
     expect(src).toContain('quotation.title');
   });
 });
+
+describe('Dynamic builder edit routes (Next.js 16 async params)', () => {
+  it('Proposal builder edit route exists at builder/[id]/page.tsx', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('ProposalBuilderApp');
+    expect(src).toContain("isEdit={true}");
+    expect(src).toContain('proposalId={id}');
+    expect(src).toContain('existingProposal={existingProposalData}');
+    expect(src).toContain("redirect('/sales/proposals')");
+  });
+
+  it('Quotation builder edit route exists at builder/[id]/page.tsx', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('QuotationBuilderApp');
+    expect(src).toContain("isEdit={true}");
+    expect(src).toContain('quotationId={id}');
+    expect(src).toContain('existingQuotation={existingQuotationData}');
+    expect(src).toContain("redirect('/sales/quotations')");
+  });
+
+  it('Proposal builder edit route awaits params (Next.js 16)', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('const { id } = await params;');
+    expect(src).toContain('params: Promise<{ id: string }>');
+  });
+
+  it('Quotation builder edit route awaits params (Next.js 16)', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('const { id } = await params;');
+    expect(src).toContain('params: Promise<{ id: string }>');
+  });
+
+  it('Proposal builder edit route imports BuilderApp from parent directory', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain("from '../BuilderApp'");
+  });
+
+  it('Quotation builder edit route imports BuilderApp from parent directory', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain("from '../BuilderApp'");
+  });
+
+  it('Proposal builder edit route loads contacts, opportunities, and proposal in parallel', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('listContacts');
+    expect(src).toContain('listOpportunities');
+    expect(src).toContain('getProposal');
+    expect(src).toContain('Promise.all([');
+  });
+
+  it('Quotation builder edit route loads contacts, opportunities, and quotation in parallel', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('listContacts');
+    expect(src).toContain('listOpportunities');
+    expect(src).toContain('getQuotation');
+    expect(src).toContain('Promise.all([');
+  });
+
+  it('Proposal builder edit route uses correct contacts response key', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('(contactsResult as { contacts: unknown[] }).contacts');
+    expect(src).not.toContain('(contactsResult as { proposals: unknown[] }).proposals');
+  });
+
+  it('Quotation builder edit route uses correct contacts response key', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('(contactsResult as { contacts: unknown[] }).contacts');
+    expect(src).not.toContain('(contactsResult as { proposals: unknown[] }).proposals');
+  });
+
+  it('Proposal builder edit route uses correct opportunities response key', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('(opportunitiesResult as { opportunities: unknown[] }).opportunities');
+    expect(src).not.toContain('(opportunitiesResult as { proposals: unknown[] }).proposals');
+  });
+
+  it('Quotation builder edit route uses correct opportunities response key', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('(opportunitiesResult as { opportunities: unknown[] }).opportunities');
+    expect(src).not.toContain('(opportunitiesResult as { proposals: unknown[] }).proposals');
+  });
+
+  it('Proposal builder edit route redirects to list when proposal not found', () => {
+    const src = readRel('app/sales/proposals/builder/[id]/page.tsx');
+    expect(src).toContain('if (!existingProposal)');
+    expect(src).toContain("redirect('/sales/proposals')");
+  });
+
+  it('Quotation builder edit route redirects to list when quotation not found', () => {
+    const src = readRel('app/sales/quotations/builder/[id]/page.tsx');
+    expect(src).toContain('if (!existingQuotation)');
+    expect(src).toContain("redirect('/sales/quotations')");
+  });
+});
