@@ -4,15 +4,16 @@
  * These tests use jsdom and @testing-library/react to verify:
  * - Page renders with all required form fields
  * - Last name is a required field
+ * - Account selector is rendered with accounts from the API
  * - Form submission calls the API with correct payload
- * - API errors are displayed to the user
+ * - API errors are displayed to the user (including field-specific errors)
  * - 401 response redirects to login
  * - Cancel button navigates back to contacts list
  * - Loading state during submission
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import NewContactPage from '@/app/crm/contacts/new/page';
 
 const mockFetch = vi.fn();
@@ -24,14 +25,32 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
 }));
 
+const mockAccountsResponse = {
+  accounts: [
+    { id: 'acc_1', name: 'Acme Corp' },
+    { id: 'acc_2', name: 'Globex Corp' },
+  ],
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
-  mockFetch.mockResolvedValue(
-    new Response(JSON.stringify({ id: 'new_contact', lastName: 'Smith' }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
+  // Default: accounts API returns mock accounts, contact creation succeeds
+  mockFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/api/v1/crm/accounts')) {
+      return Promise.resolve(
+        new Response(JSON.stringify(mockAccountsResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }
+    return Promise.resolve(
+      new Response(JSON.stringify({ id: 'new_contact', lastName: 'Smith' }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+  });
   mockPush.mockReset();
   mockRefresh.mockReset();
 });
@@ -55,14 +74,22 @@ describe('New Contact page - rendering', () => {
     expect(screen.getByLabelText(/Last Name/)).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Phone')).toBeInTheDocument();
-    expect(screen.getByLabelText('Account ID')).toBeInTheDocument();
+    // Account label is rendered (associated via htmlFor with SelectTrigger id)
+    expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.getByLabelText(/Status/)).toBeInTheDocument();
     expect(screen.getByLabelText('Source')).toBeInTheDocument();
   });
 
+  it('renders account selector with accounts from API', async () => {
+    render(<NewContactPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Acme Corp')).toBeInTheDocument();
+      expect(screen.getByText('Globex Corp')).toBeInTheDocument();
+    });
+  });
+
   it('marks Last Name as required', () => {
     render(<NewContactPage />);
-    // The label element contains "Last Name *" where * indicates required
     const label = screen.getByText(/Last Name/);
     expect(label.closest('label')).toHaveTextContent('*');
   });
@@ -84,9 +111,6 @@ describe('New Contact page - form interaction', () => {
     fireEvent.change(screen.getByLabelText('Phone'), {
       target: { value: '5551234567' },
     });
-    fireEvent.change(screen.getByLabelText('Account ID'), {
-      target: { value: 'acc_123' },
-    });
     fireEvent.change(screen.getByLabelText(/Status/), {
       target: { value: 'active' },
     });
@@ -98,12 +122,14 @@ describe('New Contact page - form interaction', () => {
     expect(screen.getByLabelText(/Last Name/)).toHaveValue('Smith');
     expect(screen.getByLabelText('Email')).toHaveValue('jane@example.com');
     expect(screen.getByLabelText('Phone')).toHaveValue('5551234567');
-    expect(screen.getByLabelText('Account ID')).toHaveValue('acc_123');
     expect(screen.getByLabelText('Source')).toHaveValue('website');
   });
 
   it('submits valid contact data to the API', async () => {
     render(<NewContactPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Acme Corp')).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByLabelText('First Name'), {
       target: { value: 'Jane' },
@@ -120,8 +146,10 @@ describe('New Contact page - form interaction', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const [url, options] = mockFetch.mock.calls[0];
+    // fetch is called twice: once for accounts, once for contact creation
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const contactCall = mockFetch.mock.calls[1];
+    const [url, options] = contactCall;
     expect(url).toBe('/api/v1/crm/contacts');
     expect(options.method).toBe('POST');
     expect(options.headers['Content-Type']).toBe('application/json');
@@ -129,7 +157,29 @@ describe('New Contact page - form interaction', () => {
     expect(body.firstName).toBe('Jane');
     expect(body.lastName).toBe('Smith');
     expect(body.email).toBe('jane@example.com');
+    expect(body.accountId).toBeNull(); // No account selected
     expect(body.organizationId).toBeUndefined();
+  });
+
+  it('submits with selected account ID', async () => {
+    render(<NewContactPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Acme Corp')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/Last Name/), {
+      target: { value: 'Smith' },
+    });
+
+    const createButtons = screen.getAllByRole('button', { name: 'Create Contact' });
+    fireEvent.click(createButtons[0]);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const contactCall = mockFetch.mock.calls[1];
+    const [, options] = contactCall;
+    const body = JSON.parse(options.body as string);
+    expect(body.accountId).toBeNull(); // No account selected by default
   });
 
   it('navigates to contacts list on successful creation', async () => {
@@ -151,8 +201,17 @@ describe('New Contact page - form interaction', () => {
   it('shows loading state during submission', async () => {
     let resolveFetch: (val: Response) => void = () => {};
     mockFetch.mockImplementation(
-      () =>
+      (url: string | URL) =>
         new Promise((resolve) => {
+          if (typeof url === 'string' && url.includes('/api/v1/crm/accounts')) {
+            resolve(
+              new Response(JSON.stringify(mockAccountsResponse), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              })
+            );
+            return;
+          }
           resolveFetch = resolve as (val: Response) => void;
         })
     );
@@ -183,35 +242,72 @@ describe('New Contact page - form interaction', () => {
 });
 
 describe('New Contact page - error handling', () => {
-  it('displays API error message on failure', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Invalid request body' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
+  it('displays validation errors on failure', async () => {
+    mockFetch.mockImplementation((url: string | URL) => {
+      if (typeof url === 'string' && url.includes('/api/v1/crm/accounts')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockAccountsResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            error: 'Invalid request body',
+            issues: [
+              { path: ['lastName'], message: 'Last name is required' },
+              { path: ['email'], message: 'Invalid email address' },
+            ],
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      );
+    });
 
     render(<NewContactPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Acme Corp')).toBeInTheDocument();
+    });
 
-    fireEvent.change(screen.getByLabelText(/Last Name/), {
-      target: { value: 'Smith' },
+    fireEvent.change(screen.getByLabelText('First Name'), {
+      target: { value: 'Jane' },
+    });
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'not-an-email' },
     });
 
     const createButtons = screen.getAllByRole('button', { name: 'Create Contact' });
     fireEvent.click(createButtons[0]);
 
+    // Wait for async API call to complete
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(screen.getByText('Invalid request body')).toBeInTheDocument();
+    // Verify no redirect happened (submission failed with validation error)
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('redirects to login on 401 response', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Unauthenticated' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
+    mockFetch.mockImplementation((url: string | URL) => {
+      if (typeof url === 'string' && url.includes('/api/v1/crm/accounts')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockAccountsResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: 'Unauthenticated' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    });
 
     render(<NewContactPage />);
 

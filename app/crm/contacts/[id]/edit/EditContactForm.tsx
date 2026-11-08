@@ -1,8 +1,16 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 
@@ -23,6 +31,18 @@ export function EditContactForm({ contact }: EditContactFormProps) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [accounts, setAccounts] = React.useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    fetch('/api/v1/crm/accounts', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data: { accounts: Array<{ id: string; name: string }> }) => {
+        setAccounts(data.accounts ?? []);
+      })
+      .catch(() => {
+        setAccounts([]);
+      });
+  }, []);
 
   const [formData, setFormData] = React.useState<{
     firstName: string;
@@ -105,9 +125,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
               <Input
                 id="firstName"
                 defaultValue={formData.firstName}
-                onChange={(e) =>
-                  setFormData({ ...formData, firstName: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -118,9 +136,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
               <Input
                 id="lastName"
                 defaultValue={formData.lastName}
-                onChange={(e) =>
-                  setFormData({ ...formData, lastName: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -132,9 +148,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
                 id="email"
                 type="email"
                 defaultValue={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -146,9 +160,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
                 id="phone"
                 type="tel"
                 defaultValue={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -156,15 +168,25 @@ export function EditContactForm({ contact }: EditContactFormProps) {
               <label htmlFor="accountId" className="block text-sm font-medium text-foreground">
                 Account ID
               </label>
-              <Input
-                id="accountId"
+              <Select
                 defaultValue={formData.accountId}
-                onChange={(e) =>
-                  setFormData({ ...formData, accountId: e.target.value })
-                }
-                placeholder="e.g. cmxxxxxxx"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+                onValueChange={(value) => setFormData({ ...formData, accountId: value ?? '' })}
+              >
+                <SelectTrigger
+                  id="accountId"
+                  className="flex h-10 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <SelectValue placeholder="No account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No account</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label htmlFor="status" className="block text-sm font-medium text-foreground">
@@ -173,9 +195,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
               <select
                 id="status"
                 defaultValue={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="active">Active</option>
@@ -189,9 +209,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
               <Input
                 id="source"
                 defaultValue={formData.source}
-                onChange={(e) =>
-                  setFormData({ ...formData, source: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                 placeholder="e.g. website, referral, cold_call"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
@@ -216,16 +234,18 @@ export function EditContactForm({ contact }: EditContactFormProps) {
                   fetch(`/api/v1/crm/contacts/${contact.id}`, {
                     method: 'DELETE',
                     credentials: 'include',
-                  }).then((res) => {
-                    if (!res.ok) {
+                  })
+                    .then((res) => {
+                      if (!res.ok) {
+                        setError('Unable to archive contact');
+                        return;
+                      }
+                      router.push('/crm/contacts');
+                      router.refresh();
+                    })
+                    .catch(() => {
                       setError('Unable to archive contact');
-                      return;
-                    }
-                    router.push('/crm/contacts');
-                    router.refresh();
-                  }).catch(() => {
-                    setError('Unable to archive contact');
-                  });
+                    });
                 }
               }}
               className="w-full mt-2"

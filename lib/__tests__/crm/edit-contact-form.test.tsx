@@ -36,12 +36,23 @@ const mockContact = {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockFetch.mockResolvedValue(
-    new Response(JSON.stringify({ id: 'contact_123', lastName: 'Smith' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
+  mockFetch.mockImplementation((url: string | URL) => {
+    const u = typeof url === 'string' ? url : String(url);
+    if (u.includes('/api/v1/crm/accounts')) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ accounts: [{ id: 'account_123', name: 'Test Account' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    }
+    return Promise.resolve(
+      new Response(JSON.stringify({ id: 'contact_123', lastName: 'Smith' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+  });
   mockPush.mockReset();
   mockRefresh.mockReset();
 });
@@ -59,7 +70,8 @@ describe('EditContactForm - rendering', () => {
     expect(screen.getByLabelText(/Last Name/)).toHaveValue('Smith');
     expect(screen.getByLabelText('Email')).toHaveValue('jane@example.com');
     expect(screen.getByLabelText('Phone')).toHaveValue('5551234567');
-    expect(screen.getByLabelText('Account ID')).toHaveValue('account_123');
+    // Account ID label is rendered (Select dropdown for account selection)
+    expect(screen.getByText('Account ID')).toBeInTheDocument();
     expect(screen.getByLabelText(/Status/)).toHaveValue('active');
     expect(screen.getByLabelText('Source')).toHaveValue('website');
   });
@@ -103,8 +115,9 @@ describe('EditContactForm - form interaction', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const [url, options] = mockFetch.mock.calls[0];
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const contactCall = mockFetch.mock.calls[1];
+    const [url, options] = contactCall;
     expect(url).toBe('/api/v1/crm/contacts/contact_123');
     expect(options.method).toBe('PUT');
     expect(options.headers['Content-Type']).toBe('application/json');
@@ -155,11 +168,13 @@ describe('EditContactForm - form interaction', () => {
 
 describe('EditContactForm - error handling', () => {
   it('displays API error message on failure', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      })
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ error: 'Not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
     );
 
     render(<EditContactForm contact={mockContact} />);
@@ -199,15 +214,32 @@ describe('EditContactForm - cancel and archive', () => {
     const mockConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const mockFetchDelete = vi.fn();
     // Override fetch for DELETE calls
-    mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+    mockFetch.mockImplementation((url: string | URL, options?: RequestInit) => {
+      const u = typeof url === 'string' ? url : String(url);
       if (options?.method === 'DELETE') {
-        mockFetchDelete(url, options);
-        return Promise.resolve(new Response(JSON.stringify({ id: 'contact_123', deletedAt: new Date() }), {
+        mockFetchDelete(u, options);
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 'contact_123', deletedAt: new Date() }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      // Non-DELETE calls (e.g. accounts fetch on mount) return success
+      if (u.includes('/api/v1/crm/accounts')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ accounts: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ id: 'contact_123' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }));
-      }
-      return mockFetch(url, options);
+        })
+      );
     });
 
     render(<EditContactForm contact={mockContact} />);
