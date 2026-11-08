@@ -73,12 +73,10 @@ async function isOrganizationAdmin(userId: string, organizationId: string): Prom
   const userRole = await prisma.userRole.findFirst({
     where: { userId, organizationId },
     include: {
-      role: {
-        where: { isSystem: true, name: 'Administrator' },
-      },
+      role: true,
     },
   });
-  return !!userRole;
+  return !!userRole?.role && userRole.role.isSystem && userRole.role.name === 'Administrator';
 }
 
 /** Get organization settings for the current user's organization */
@@ -88,7 +86,10 @@ export async function getOrganizationSettings() {
   // Any authenticated user can read their organization's settings
   await requirePermission(userId, organizationId, 'invoice.read');
 
-  const [organization, admin] = await prisma.$transaction([
+  // Run organization fetch and admin check concurrently. Note: isOrganizationAdmin
+  // returns a plain Promise<boolean>, not a Prisma operation, so it cannot be
+  // mixed into prisma.$transaction. Use Promise.all instead.
+  const [organization, isAdmin] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: organizationId },
       select: {
@@ -116,7 +117,7 @@ export async function getOrganizationSettings() {
     slug: organization.slug,
     domain: organization.domain,
     settings: (organization.settings as OrganizationSettings) ?? {},
-    isAdmin: admin,
+    isAdmin: isAdmin,
     createdAt: organization.createdAt,
     updatedAt: organization.updatedAt,
   };

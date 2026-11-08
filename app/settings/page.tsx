@@ -60,6 +60,8 @@ export default function SettingsPage() {
   const [userMode, setUserMode] = useState<FormMode>('idle');
   const [orgMessage, setOrgMessage] = useState<string>('');
   const [userMessage, setUserMessage] = useState<string>('');
+  const [orgError, setOrgError] = useState<string | null>(null);
+  const [userError, setUserError] = useState<string | null>(null);
 
   // Organization form state (defaults from server)
   const [orgName, setOrgName] = useState('');
@@ -136,6 +138,9 @@ export default function SettingsPage() {
       } catch (err) {
         if (!cancelled) {
           console.error('Failed to load settings:', err);
+          const message = err instanceof Error ? err.message : 'Failed to load settings';
+          setOrgError(message);
+          setUserError(message);
         }
       }
     })();
@@ -233,6 +238,24 @@ export default function SettingsPage() {
   };
 
   if (!org || !user) {
+    if (orgError || userError) {
+      return (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <h3 className="text-sm font-semibold text-red-800 mb-1">Failed to load settings</h3>
+            <p className="text-sm text-red-700">
+              {orgError || userError || 'Unable to load settings. Please try again.'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 px-3 py-1.5 text-sm font-medium text-red-600 hover:underline"
+            >
+              Refresh page
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="p-6">
         <div className="flex items-center gap-2 text-muted-foreground">Loading settings...</div>
