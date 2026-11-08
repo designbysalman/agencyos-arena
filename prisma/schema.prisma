@@ -46,6 +46,7 @@ model User {
   createdProjects   Project[]  @relation("CreatedProject")
   updatedProjects   Project[]  @relation("UpdatedProject")
   createdPayments   Payment[]  @relation("CreatedPayment")
+  signedContracts   Contract[]
   timeEntries    TimeEntry[]
   projectFiles   ProjectFile[]
   tasks          Task[]
@@ -737,6 +738,7 @@ model Proposal {
   opportunity Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   items       ProposalLineItem[]
+  versions    ProposalVersion[]
   creator     User?          @relation("CreatedProposal", fields: [createdBy], references: [id], onDelete: SetNull)
   updater     User?          @relation("UpdatedProposal", fields: [updatedBy], references: [id], onDelete: SetNull)
 
@@ -808,16 +810,22 @@ model QuotationLineItem {
 }
 
 model Contract {
-  id          String   @id @default(cuid())
+  id            String   @id @default(cuid())
   organizationId String
-  proposalId  String?
-  projectId   String?
-  title       String
-  status      String   @default("draft")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  proposalId    String?
+  projectId     String?
+  title         String
+  status        String   @default("draft")
+  signatureReference String?
+  signedAt      DateTime?
+  signedBy      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  proposal     Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  signer       User?       @relation(fields: [signedBy], references: [id], onDelete: SetNull)
 }
 
 model Document {
@@ -827,8 +835,93 @@ model Document {
   type        String
   folder      String?
   visibility  String   @default("private")
+  fileAssetId String?
+  version     Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fileAsset   FileAsset?  @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
+  versions    DocumentVersion[]
+  links       DocumentLink[]
+}
+
+model ProposalVersion {
+  id          String   @id @default(cuid())
+  organizationId String
+  proposalId  String
+  version     Int
+  title       String
+  status      String
+  subtotal    Decimal  @default(0)
+  tax         Decimal  @default(0)
+  total       Decimal  @default(0)
+  currency    String   @default("USD")
+  notes       String?
+  snapshot    Json
+  createdAt   DateTime @default(now())
+  createdBy   String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  proposal    Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  creator     User?       @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([proposalId, version])
+}
+
+model DocumentVersion {
+  id          String   @id @default(cuid())
+  organizationId String
+  documentId  String
+  version     Int
+  title       String
+  fileAssetId String?
+  snapshot    Json?
+  createdAt   DateTime @default(now())
+  createdBy   String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document    Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  fileAsset   FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
+  creator     User?      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([documentId, version])
+}
+
+model DocumentLink {
+  id          String   @id @default(cuid())
+  organizationId String
+  documentId  String
+  token       String   @unique
+  expiresAt   DateTime
+  accessCount Int      @default(0)
+  maxAccess   Int?
+  createdAt   DateTime @default(now())
+  createdBy   String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  creator     User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Signature {
+  id             String   @id @default(cuid())
+  organizationId String
+  documentId     String?
+  contractId     String?
+  signerName     String
+  signerEmail    String
+  signedAt       DateTime @default(now())
+  signatureMethod String  @default("audit_trail") // audit_trail | esign_provider
+  signatureReference String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  contract     Contract?  @relation(fields: [contractId], references: [id], onDelete: SetNull)
 }

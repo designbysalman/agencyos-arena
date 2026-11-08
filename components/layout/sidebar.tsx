@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
+import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 import { classNames } from '@/lib/utils';
 import {
@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   Menu,
   X,
+  File,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +43,10 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: Briefcase },
   { name: 'Automation', href: '/automation/workflows', icon: Mail },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Documents', href: '/documents/contracts', icon: File },
+  { name: 'Contracts', href: '/documents/contracts', icon: FileText },
+  { name: 'Templates', href: '/documents/templates', icon: File },
+  { name: 'Shared Links', href: '/documents/links', icon: LinkIcon },
 ];
 
 export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen }: SidebarProps) {
@@ -71,12 +77,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
     isOpen ? 'translate-x-0' : '-translate-x-full'
   );
 
-    // Expanded: labels shown and expanded-style active states.
-    // True when desktop is expanded OR mobile drawer is open,
-    // independent of the desktop collapsed state.
-    const expanded = isOpen || !isCollapsed;
+  // Expanded: labels shown and expanded-style active states.
+  // True when desktop is expanded OR mobile drawer is open,
+  // independent of the desktop collapsed state.
+  const expanded = isOpen || !isCollapsed;
 
-    return (
+  return (
     <aside
       className={classNames(
         'fixed inset-y-0 left-0 z-50 border-r border-border bg-background transition-all duration-300 ease-in-out',
@@ -87,9 +93,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
       <div className="flex h-full flex-col">
         <div className="flex h-12 items-center justify-between border-b border-border bg-background p-4 shrink-0 relative">
           {/* AgencyOS logo: shown when sidebar is expanded (desktop or open mobile drawer) */}
-          {expanded && (
-            <h1 className="text-xl font-bold tracking-tight text-accent">AgencyOS</h1>
-          )}
+          {expanded && <h1 className="text-xl font-bold tracking-tight text-accent">AgencyOS</h1>}
 
           {/* Right-aligned toggle: collapse chevron (expanded desktop) or close button (open mobile drawer) */}
           {expanded && (
@@ -120,7 +124,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <Link
+              <NextLink
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsOpen?.(false)}
@@ -148,7 +152,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
                   <item.icon className="w-5 h-5" />
                 </div>
                 {expanded && <span className="min-w-0">{item.name}</span>}
-              </Link>
+              </NextLink>
             );
           })}
         </nav>
