@@ -144,7 +144,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isOpen = false, setIsOpen
             const isActive = pathname === item.href;
             return (
               <NextLink
-                key={item.name}
+                key={`${item.name}|${item.href}`}
                 href={item.href}
                 onClick={() => setIsOpen?.(false)}
                 className={classNames(
