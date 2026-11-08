@@ -8,6 +8,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 
@@ -29,15 +30,8 @@ interface Contact {
   deletedAt: Date | null;
 }
 
-interface ContactsPageProps {
-  searchParams?: {
-    page?: string;
-    pageSize?: string;
-    search?: string;
-  };
-}
-
-export default function ContactsPage({ searchParams }: ContactsPageProps) {
+export default function ContactsPage() {
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [contacts, setContacts] = React.useState<Contact[]>([]);
   const [total, setTotal] = React.useState(0);
@@ -46,12 +40,12 @@ export default function ContactsPage({ searchParams }: ContactsPageProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
-  const pageNum = Math.max(1, parseInt(String(searchParams?.page ?? '1'), 10));
+  const pageNum = Math.max(1, parseInt(String(searchParams.get('page') ?? '1'), 10));
   const pageSizeNum = Math.min(
     100,
-    Math.max(1, parseInt(String(searchParams?.pageSize ?? '20'), 10))
+    Math.max(1, parseInt(String(searchParams.get('pageSize') ?? '20'), 10))
   );
-  const searchVal = String(searchParams?.search ?? '');
+  const searchVal = String(searchParams.get('search') ?? '');
 
   React.useEffect(() => {
     let mounted = true;
@@ -101,7 +95,9 @@ export default function ContactsPage({ searchParams }: ContactsPageProps) {
         headers: { Accept: 'application/json' },
       });
       if (!res.ok) {
-        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        const errData = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         toast({
           title: 'Delete failed',
           description: errData.error || 'Unable to delete contact',
