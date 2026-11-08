@@ -57,13 +57,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const parsed = quotationCreateSchema.safeParse(body);
+    // Strip lineItems before strict Zod validation (validated separately below)
+    const { lineItems: lineItemsRaw, ...createInput } = body;
+    const parsed = quotationCreateSchema.safeParse(createInput);
     if (!parsed.success) {
       return errorResponse('Invalid request body', 400, parsed.error.issues);
     }
 
     // Validate and parse line items (always required)
-    const lineItemsRaw = body.lineItems;
     if (!Array.isArray(lineItemsRaw) || lineItemsRaw.length === 0) {
       return errorResponse('At least one line item is required', 400);
     }

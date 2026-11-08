@@ -1,23 +1,14 @@
 /**
  * AgencyOS Sales Proposal Edit page.
- * Server component that authenticates and passes the proposal ID to the client form.
- */
+ * * Redirects to the Phase 2.2 Live Preview Builder for editing an existing * proposal. Preserves the /sales/proposals/[id]/edit route as the entry point. * The builder loads the saved proposal values and line items from the API. */
 
-import { auth } from '@/lib/auth-server';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import EditProposalForm from './EditProposalForm';
 
-export default async function ProposalEditPage({ params }: { params: { id: string } }) {
-  const cookieStore = await cookies();
-  const result = await auth.api.getSession({
-    headers: { cookie: cookieStore.toString() },
-  });
-
-  if (!result?.session || !result.user) {
-    redirect('/login');
-  }
-
-  const { id } = await params;
-  return <EditProposalForm initialId={id} />;
+export default function ProposalEditPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  redirect(`/sales/proposals/builder/${params.id}`);
 }
+

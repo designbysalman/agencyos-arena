@@ -14,7 +14,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: agencyos
-          POSTGRES_PASSWORD: agencyos_dev_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}
           POSTGRES_DB: agencyos
         options: >-
           --health-cmd "pg_isready -U agencyos -d agencyos"
@@ -40,7 +40,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: agencyos
-          POSTGRES_PASSWORD: agencyos_dev_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}
           POSTGRES_DB: agencyos
         options: >-
           --health-cmd "pg_isready -U agencyos -d agencyos"
@@ -70,17 +70,17 @@ jobs:
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+          DATABASE_URL: "postgresql://agencyos:${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}@localhost:5432/agencyos?schema=public"
       - run: node_modules/.bin/prisma validate
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public" 
+          DATABASE_URL: "postgresql://agencyos:${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}@localhost:5432/agencyos?schema=public" 
       - run: set -o pipefail && node_modules/.bin/prisma migrate deploy 2>&1
         env:
           CHECKPOINT_DISABLE: "1"
           PRISMA_HIDE_UPDATE_MESSAGE: "true"
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
+          DATABASE_URL: "postgresql://agencyos:${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}@localhost:5432/agencyos?schema=public"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -98,7 +98,7 @@ jobs:
           SERVER_PID=$!
           SERVER_READY=0
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000/api/auth/get-session > /dev/null 2>&1; then
+            if curl -sf http://localhost:3001/api/auth/get-session > /dev/null 2>&1; then
               echo "Next.js server is ready"
               SERVER_READY=1
               break
@@ -116,10 +116,11 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
           exit $TEST_EXIT
         env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-          BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
-          BETTER_AUTH_URL: "http://localhost:3000"
+          DATABASE_URL: "postgresql://agencyos:${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}@localhost:5432/agencyos?schema=public"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'ci_auth_secret_arena_2026' }}
+          BETTER_AUTH_URL: "http://localhost:3001"
           NODE_ENV: "test"
+          PORT: "3001"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -138,6 +139,6 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@localhost:5432/agencyos?schema=public"
-          BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production"
-          BETTER_AUTH_URL: "http://localhost:3000"
+          DATABASE_URL: "postgresql://agencyos:${{ secrets.CI_POSTGRES_PASSWORD || 'ci_arena_test_2026' }}@localhost:5432/agencyos?schema=public"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'ci_auth_secret_arena_2026' }}
+          BETTER_AUTH_URL: "http://localhost:3001"

@@ -1,0 +1,135 @@
+/**
+ * AgencyOS Notifications page.
+ * Lists in-app notifications for the current user.
+ */
+
+import { auth } from '@/lib/auth-server';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+
+async function listNotifications() {
+  const cookieStore = await cookies();
+  const result = await auth.api.getSession({
+    headers: { cookie: cookieStore.toString() },
+  });
+
+  if (!result?.session || !result.user) {
+    redirect('/login');
+  }
+
+  const res = await fetch('/api/v1/automation/notifications', {
+    headers: { cookie: cookieStore.toString() },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    return [];
+  }
+
+  return res.json();
+}
+
+export default async function NotificationsPage() {
+  const notifications = await listNotifications();
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl font-bold">Notifications</h1>
+        <Link
+          href="/automation/workflows"
+          className="px-4 py-2 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
+        >
+          Workflows
+        </Link>
+      </div>
+
+      <div className="rounded-md border bg-background p-6">
+        <h2 className="text-lg font-semibold mb-4">Mark as Read</h2>
+        <p className="text-sm text-muted-foreground">
+          Select a notification below to mark it as read.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border text-sm text-muted-foreground">
+              <th className="pb-3 font-medium">Type</th>
+              <th className="pb-3 font-medium">Channel</th>
+              <th className="pb-3 font-medium">Status</th>
+              <th className="pb-3 font-medium text-right">Created</th>
+              <th className="pb-3 font-medium w-32">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              notifications as Array<{
+                id: string;
+                type: string;
+                channel: string;
+                read: boolean;
+                payload: Record<string, unknown> | null;
+                createdAt: Date;
+              }>
+            ).length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                  No notifications found.
+                </td>
+              </tr>
+            ) : (
+              (
+                notifications as Array<{
+                  id: string;
+                  type: string;
+                  channel: string;
+                  read: boolean;
+                  payload: Record<string, unknown> | null;
+                  createdAt: Date;
+                }>
+              ).map((n) => (
+                <tr
+                  key={n.id}
+                  className={`border-b border-border hover:bg-muted/50 ${n.read ? 'opacity-60' : ''}`}
+                >
+                  <td className="py-4 font-medium">{n.type}</td>
+                  <td className="py-4 text-sm text-muted-foreground">{n.channel}</td>
+                  <td className="py-4">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium leading-none ${
+                        n.read ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {n.read ? 'Read' : 'Unread'}
+                    </span>
+                  </td>
+                  <td className="py-4 text-right text-sm text-muted-foreground">
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="py-4 text-right">
+                    {!n.read && (
+                      <button
+                        onClick={() => {
+                          fetch(`/api/v1/automation/notifications/${n.id}/read`, {
+                            method: 'POST',
+                            headers: { cookie: cookieStore.toString() },
+                          }).then(() => window.location.reload());
+                        }}
+                        className="text-sm text-accent hover:underline"
+                      >
+                        Mark Read
+                      </button>
+                    )}
+                    {n.read && <span className="text-sm text-muted-foreground">—</span>}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

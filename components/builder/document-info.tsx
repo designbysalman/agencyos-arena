@@ -1,0 +1,192 @@
+'use client';
+
+import * as React from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { SelectLabel } from '@/components/ui/select';
+import { type DocumentInfo } from './use-builder-state';
+
+interface DocumentInfoProps {
+  info: DocumentInfo;
+  currencies: string[];
+  contacts: Array<{ id: string; firstName?: string | null; lastName?: string | null }>;
+  opportunities: Array<{ id: string; title: string }>;
+  loading: boolean;
+  onChange: (updates: Partial<DocumentInfo>) => void;
+}
+
+export function DocumentInfoForm({
+  info,
+  currencies,
+  contacts,
+  opportunities,
+  loading,
+  onChange,
+}: DocumentInfoProps) {
+  return (
+    <section className="space-y-6">
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Document Information
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">
+            Title <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="title"
+            value={info.title}
+            onChange={(e) => onChange({ title: e.target.value })}
+            disabled={loading}
+            placeholder="e.g. Website Redesign Proposal"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="currency">Currency</Label>
+          <Select
+            onValueChange={(value) => onChange({ currency: value })}
+            defaultValue={info.currency}
+            disabled={loading}
+          >
+            <SelectTrigger id="currency">
+              <SelectValue placeholder="Select currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {currencies.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select
+            onValueChange={(value) => onChange({ status: value })}
+            defaultValue={info.status}
+            disabled={loading}
+          >
+            <SelectTrigger id="status">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="contactId">Contact / Client</Label>
+          <Select
+            onValueChange={(value) => onChange({ contactId: value || null, opportunityId: null })}
+            defaultValue={info.contactId ?? ''}
+            disabled={loading || contacts.length === 0}
+          >
+            <SelectTrigger id="contactId">
+              <SelectValue placeholder="Select a contact..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectLabel>Contacts</SelectLabel>
+              {contacts.map((contact) => {
+                const name =
+                  [contact.firstName ?? '', contact.lastName ?? ''].join(' ').trim() ||
+                  'Unnamed Contact';
+                return (
+                  <SelectItem key={contact.id} value={contact.id}>
+                    {name}
+                  </SelectItem>
+                );
+              })}
+              {contacts.length === 0 && (
+                <SelectItem disabled value="">
+                  No contacts available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          {contacts.length === 0 && (
+            <p className="text-xs text-muted-foreground">No contacts found in your organization.</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="opportunityId">Opportunity</Label>
+          <Select
+            onValueChange={(value) => onChange({ opportunityId: value || null })}
+            defaultValue={info.opportunityId ?? ''}
+            disabled={loading || opportunities.length === 0}
+          >
+            <SelectTrigger id="opportunityId">
+              <SelectValue placeholder="Select an opportunity..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectLabel>Opportunities</SelectLabel>
+              {opportunities.map((opp) => (
+                <SelectItem key={opp.id} value={opp.id}>
+                  {opp.title}
+                </SelectItem>
+              ))}
+              {opportunities.length === 0 && (
+                <SelectItem disabled value="">
+                  No opportunities available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          {opportunities.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              No opportunities found in your organization.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="validUntil">Valid Until</Label>
+          <Input
+            id="validUntil"
+            type="date"
+            value={info.validUntil ?? ''}
+            onChange={(e) => onChange({ validUntil: e.target.value || null })}
+            disabled={loading}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes / Terms</Label>
+        <Textarea
+          id="notes"
+          value={info.notes ?? ''}
+          onChange={(e) => onChange({ notes: e.target.value || null })}
+          disabled={loading}
+          rows={4}
+          placeholder="Terms and conditions, special notes..."
+          className="flex h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        />
+      </div>
+    </section>
+  );
+}

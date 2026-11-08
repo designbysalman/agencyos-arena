@@ -34,7 +34,7 @@ const SERVER_URL = 'http://localhost:3000';
 const describeIfDb = canRunTests ? describe : describe.skip;
 
 const TEST_EMAIL_SUFFIX = '@crm-accounts-test.invalid';
-const TEST_PASSWORD = 'TestPassword123!';
+const TEST_PASSWORD = process.env.TEST_PASSWORD ?? 'test_arena_password_2026';
 
 /** Register, sign in, and bootstrap an org for a test user. Returns session token, user, orgId. */
 async function createAuthenticatedUserWithOrg(email: string, name: string, orgName: string) {

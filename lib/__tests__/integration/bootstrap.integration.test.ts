@@ -33,7 +33,7 @@ const SERVER_URL = 'http://localhost:3000';
 const describeIfDb = canRunTests ? describe : describe.skip;
 
 const TEST_EMAIL_SUFFIX = '@bootstrap-test.invalid';
-const TEST_PASSWORD = 'TestPassword123!';
+const TEST_PASSWORD = process.env.TEST_PASSWORD ?? 'test_arena_password_2026';
 
 /** Register a user via HTTP and sign in, returning the Better Auth session token and user record */
 async function createAuthenticatedUser(email: string, name: string) {
