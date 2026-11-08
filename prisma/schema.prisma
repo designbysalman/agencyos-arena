@@ -570,6 +570,7 @@ model Project {
   milestones  Milestone[]
   changeOrders ChangeOrder[]
   files       ProjectFile[]
+  approvals   ProjectApproval[]
 }
 
 model ProjectTemplate {
@@ -603,6 +604,7 @@ model Task {
   milestone      Milestone?    @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   timeEntries    TimeEntry[]
   projectFiles   ProjectFile[]
+  comments       TaskComment[]
 }
 
 model Milestone {
@@ -924,4 +926,40 @@ model Signature {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   document     Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
   contract     Contract?  @relation(fields: [contractId], references: [id], onDelete: SetNull)
+}
+
+model ProjectApproval {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String
+  contactId      String?
+  status         String   @default("pending") // pending, approved, changes_requested
+  feedback       String?
+  approvedAt     DateTime?
+  createdBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact        Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  creator        User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([projectId, status])
+}
+
+model TaskComment {
+  id          String   @id @default(cuid())
+  organizationId String
+  taskId      String
+  userId      String
+  comment     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
 }
