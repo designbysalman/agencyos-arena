@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useToast, ToastProvider } from '@/components/ui/use-toast';
 import {
   Provider as ToastViewport,
-  Viewport,
   Toast,
   ToastTitle,
   ToastDescription,
