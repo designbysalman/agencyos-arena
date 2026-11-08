@@ -11,14 +11,14 @@ datasource db {
 /// ============================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean @default(false)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   name          String?
   image         String?
   password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // AgencyOS extensions
   organizationId String?
@@ -28,77 +28,77 @@ model User {
   mfaSecret      String?
   lastLoginAt    DateTime?
 
-  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  userRoles      UserRole[]
-  sessions       Session[]
-  accounts       Account[]
-  verifications  Verification[]
-  auditLogs      AuditLog[]
+  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  userRoles     UserRole[]
+  sessions      Session[]
+  accounts      Account[]
+  verifications Verification[]
+  auditLogs     AuditLog[]
 
-  createdContacts Contact[]    @relation("CreatedContact")
-  updatedContacts Contact[]    @relation("UpdatedContact")
-  createdProposals Proposal[]  @relation("CreatedProposal")
-  updatedProposals Proposal[]  @relation("UpdatedProposal")
-  createdQuotations Quotation[] @relation("CreatedQuotation")
-  updatedQuotations Quotation[] @relation("UpdatedQuotation")
-  createdInvoices   Invoice[]  @relation("CreatedInvoice")
-  updatedInvoices   Invoice[]  @relation("UpdatedInvoice")
-  createdProjects   Project[]  @relation("CreatedProject")
-  updatedProjects   Project[]  @relation("UpdatedProject")
-  createdPayments   Payment[]  @relation("CreatedPayment")
+  createdContacts   Contact[]         @relation("CreatedContact")
+  updatedContacts   Contact[]         @relation("UpdatedContact")
+  createdProposals  Proposal[]        @relation("CreatedProposal")
+  updatedProposals  Proposal[]        @relation("UpdatedProposal")
+  createdQuotations Quotation[]       @relation("CreatedQuotation")
+  updatedQuotations Quotation[]       @relation("UpdatedQuotation")
+  createdInvoices   Invoice[]         @relation("CreatedInvoice")
+  updatedInvoices   Invoice[]         @relation("UpdatedInvoice")
+  createdProjects   Project[]         @relation("CreatedProject")
+  updatedProjects   Project[]         @relation("UpdatedProject")
+  createdPayments   Payment[]         @relation("CreatedPayment")
   signedContracts   Contract[]
-  timeEntries    TimeEntry[]
-  projectFiles   ProjectFile[]
-  tasks          Task[]
-  notifications  Notification[]
-  createdApprovals ProjectApproval[] @relation("CreatedProjectApproval")
-  taskComments   TaskComment[]
-  proposalVersions ProposalVersion[] @relation("CreatedProposalVersion")
-  documentVersions DocumentVersion[] @relation("CreatedDocumentVersion")
-  documentLinks  DocumentLink[] @relation("CreatedDocumentLink")
+  timeEntries       TimeEntry[]
+  projectFiles      ProjectFile[]
+  tasks             Task[]
+  notifications     Notification[]
+  createdApprovals  ProjectApproval[] @relation("CreatedProjectApproval")
+  taskComments      TaskComment[]
+  proposalVersions  ProposalVersion[] @relation("CreatedProposalVersion")
+  documentVersions  DocumentVersion[] @relation("CreatedDocumentVersion")
+  documentLinks     DocumentLink[]    @relation("CreatedDocumentLink")
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  ipAddress    String?
-  userAgent    String?
-  userId       String
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
-  id            String   @id @default(cuid())
-  accountId     String
-  providerId    String
-  userId        String
-  accessToken   String?
-  refreshToken  String?
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
   refreshTokenExpiresAt DateTime?
-  idToken       String?
-  accessTokenExpiresAt DateTime?
-  scope         String?
-  password      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Verification {
-  id           String   @id @default(cuid())
-  identifier   String
-  value        String
-  expiresAt    DateTime
-  userId       String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// ============================================
@@ -114,39 +114,43 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users          User[]
-  agencyAccounts   AgencyAccount[]
-  contacts       Contact[]
-  organizations  OrganizationAccount[]
-  leads          Lead[]
-  opportunities  Opportunity[]
-  pipelines      Pipeline[]
-  projects       Project[]
-  projectTemplates ProjectTemplate[]
-  invoices       Invoice[]
-  estimates      Estimate[]
-  expenseItems   ExpenseItem[]
-  proposals      Proposal[]
-  quotations     Quotation[]
-  contracts      Contract[]
-  documents      Document[]
-  tasks          Task[]
-  timeEntries    TimeEntry[]
-  projectFiles   ProjectFile[]
-  milestones     Milestone[]
-  changeOrders   ChangeOrder[]
-  workflowRules  WorkflowRule[]
+  users              User[]
+  agencyAccounts     AgencyAccount[]
+  contacts           Contact[]
+  organizations      OrganizationAccount[]
+  leads              Lead[]
+  opportunities      Opportunity[]
+  pipelines          Pipeline[]
+  projects           Project[]
+  projectTemplates   ProjectTemplate[]
+  invoices           Invoice[]
+  estimates          Estimate[]
+  expenseItems       ExpenseItem[]
+  proposals          Proposal[]
+  quotations         Quotation[]
+  contracts          Contract[]
+  documents          Document[]
+  tasks              Task[]
+  timeEntries        TimeEntry[]
+  projectFiles       ProjectFile[]
+  milestones         Milestone[]
+  changeOrders       ChangeOrder[]
+  workflowRules      WorkflowRule[]
   workflowExecutions WorkflowExecution[]
-  notifications  Notification[]
-  auditLogs      AuditLog[]
-  customFields   CustomField[]
-  roles          Role[]
-  userRoles      UserRole[]
-  featureFlags   FeatureFlag[]
-  fileAssets     FileAsset[]
-  webhookEvents  WebhookEvent[]
-  projectApprovals ProjectApproval[]
-  taskComments   TaskComment[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  customFields       CustomField[]
+  roles              Role[]
+  userRoles          UserRole[]
+  featureFlags       FeatureFlag[]
+  fileAssets         FileAsset[]
+  webhookEvents      WebhookEvent[]
+  projectApprovals   ProjectApproval[]
+  taskComments       TaskComment[]
+  proposalVersions   ProposalVersion[]
+  documentVersions   DocumentVersion[]
+  documentLinks      DocumentLink[]
+  signatures         Signature[]
 }
 
 model OrganizationAccount {
@@ -155,43 +159,43 @@ model OrganizationAccount {
   accountId      String
   createdAt      DateTime @default(now())
 
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  account        AgencyAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account      AgencyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, accountId])
 }
 
 model AgencyAccount {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  name        String
-  website     String?
-  address     String?
-  status      String   @default("active")
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  name           String
+  website        String?
+  address        String?
+  status         String    @default("active")
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contacts       Contact[]
-  organizations  OrganizationAccount[]
-  opportunities  Opportunity[]
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contacts        Contact[]
+  organizations   OrganizationAccount[]
+  opportunities   Opportunity[]
   accountContacts AccountContact[]
-  leads          Lead[]
+  leads           Lead[]
 }
 
 model Role {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
   organizationId String
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  permissions RolePermission[]
-  userRoles   UserRole[]
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions  RolePermission[]
+  userRoles    UserRole[]
 }
 
 model Permission {
@@ -208,22 +212,22 @@ model RolePermission {
   permissionId String
   grantedAt    DateTime @default(now())
 
-  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission  Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
 }
 
 model UserRole {
-  id           String   @id @default(cuid())
-  userId       String
-  roleId       String
+  id             String   @id @default(cuid())
+  userId         String
+  roleId         String
   organizationId String
-  assignedAt   DateTime @default(now())
-  assignedBy   String?
+  assignedAt     DateTime @default(now())
+  assignedBy     String?
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, organizationId])
@@ -231,93 +235,95 @@ model UserRole {
 
 /// Audit log
 model AuditLog {
-  id          String   @id @default(cuid())
-  actorId     String?
-  actorName   String?
-  action      String
-  entityType  String
-  entityId    String
-  before      Json?
-  after       Json?
-  metadata    Json?
-  ipAddress   String?
-  userAgent   String?
+  id             String   @id @default(cuid())
+  actorId        String?
+  actorName      String?
+  action         String
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
   organizationId String
-  createdAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actor        User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }
 
 /// Custom fields
 model CustomField {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  entityType  String
-  fieldName   String
-  fieldType   String
-  config      Json     @default("{}")
-  isRequired  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  entityType     String
+  fieldName      String
+  fieldType      String
+  config         Json     @default("{}")
+  isRequired     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  values      CustomFieldValue[]
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  values       CustomFieldValue[]
 }
 
 model CustomFieldValue {
-  id           String   @id @default(cuid())
+  id            String   @id @default(cuid())
   customFieldId String
-  entityId     String
-  value        Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  entityId      String
+  value         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  customField  CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
 
   @@unique([customFieldId, entityId])
 }
 
 /// Feature flags
 model FeatureFlag {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  flagKey     String   @unique
-  enabled     Boolean  @default(false)
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  flagKey        String   @unique
+  enabled        Boolean  @default(false)
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 /// Webhook events
 model WebhookEvent {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  eventType   String
-  payload     Json
-  status      String   @default("pending")
-  attempts    Int      @default(0)
-  createdAt   DateTime @default(now())
-  sentAt      DateTime?
+  eventType      String
+  payload        Json
+  status         String    @default("pending")
+  attempts       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  sentAt         DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 /// File assets (metadata only)
 model FileAsset {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  originalName String
-  mimeType    String
-  size        Int
-  storagePath String
-  uploadedBy  String?
-  createdAt   DateTime @default(now())
+  originalName   String
+  mimeType       String
+  size           Int
+  storagePath    String
+  uploadedBy     String?
+  createdAt      DateTime @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  projectFiles   ProjectFile[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectFiles     ProjectFile[]
+  documents        Document[]
+  documentVersions DocumentVersion[]
 }
 
 /// ============================================
@@ -325,139 +331,139 @@ model FileAsset {
 /// ============================================
 
 model Contact {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  accountId   String?
-  firstName   String?
-  lastName    String
-  email       String?
-  phone       String?
-  maskedEmail String?
-  maskedPhone String?
-  isMasked    Boolean  @default(false)
-  status      String   @default("active")
-  source      String?
-  deletedAt   DateTime?
-  createdBy   String?
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  accountId      String?
+  firstName      String?
+  lastName       String
+  email          String?
+  phone          String?
+  maskedEmail    String?
+  maskedPhone    String?
+  isMasked       Boolean   @default(false)
+  status         String    @default("active")
+  source         String?
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  account       AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountContacts AccountContact[]
-  leads         Lead[]
-  opportunities Opportunity[]
-  proposals     Proposal[]
-  quotations    Quotation[]
-  invoices      Invoice[]
-  projects      Project[]
-  creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  account          AgencyAccount?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountContacts  AccountContact[]
+  leads            Lead[]
+  opportunities    Opportunity[]
+  proposals        Proposal[]
+  quotations       Quotation[]
+  invoices         Invoice[]
+  projects         Project[]
+  creator          User?             @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater          User?             @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
   projectApprovals ProjectApproval[]
 }
 
 model AccountContact {
-  id           String   @id @default(cuid())
-  accountId    String
-  contactId    String
+  id            String   @id @default(cuid())
+  accountId     String
+  contactId     String
   roleInAccount String?
-  createdAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
-  account      AgencyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  contact      Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  account AgencyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contact Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([accountId, contactId])
 }
 
 model Lead {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  contactId   String?
-  accountId   String?
-  source      String
-  status      String   @default("new")
-  priority    String?
-  expectedValue Decimal?
-  ownerId     String?
-  pipelineId  String?
-  stageId     String?
-  notes       String?
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  contactId      String?
+  accountId      String?
+  source         String
+  status         String    @default("new")
+  priority       String?
+  expectedValue  Decimal?
+  ownerId        String?
+  pipelineId     String?
+  stageId        String?
+  notes          String?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contact     Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  account     AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  pipeline    Pipeline?  @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
-  stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact       Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  account       AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  pipeline      Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  stage         PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
   opportunities Opportunity[]
 }
 
 model Pipeline {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  name        String
-  description String?
-  isDefault   Boolean  @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  name           String
+  description    String?
+  isDefault      Boolean   @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  stages      PipelineStage[]
-  leads       Lead[]
+  organization  Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages        PipelineStage[]
+  leads         Lead[]
   opportunities Opportunity[]
 }
 
 model PipelineStage {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   pipelineId  String
   name        String
   order       Int
   color       String?
   probability Decimal?
-  isWon       Boolean  @default(false)
-  isLost      Boolean  @default(false)
+  isWon       Boolean   @default(false)
+  isLost      Boolean   @default(false)
   deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  pipeline    Pipeline   @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  leads       Lead[]
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  leads         Lead[]
   opportunities Opportunity[]
 }
 
 model Opportunity {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  contactId   String?
-  accountId   String?
-  leadId      String?
-  pipelineId  String?
-  stageId     String?
-  title       String
-  description String?
-  value       Decimal?
-  currency    String   @default("USD")
-  closeDate   DateTime?
-  ownerId     String?
-  status      String   @default("open")
-  probability Decimal?
-  lossReason  String?
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  contactId      String?
+  accountId      String?
+  leadId         String?
+  pipelineId     String?
+  stageId        String?
+  title          String
+  description    String?
+  value          Decimal?
+  currency       String    @default("USD")
+  closeDate      DateTime?
+  ownerId        String?
+  status         String    @default("open")
+  probability    Decimal?
+  lossReason     String?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contact       Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  account       AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  lead          Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  pipeline      Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
-  stage         PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  proposals     Proposal[]
-  quotations    Quotation[]
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  account      AgencyAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  lead         Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  pipeline     Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  stage        PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  proposals    Proposal[]
+  quotations   Quotation[]
 }
 
 /// ============================================
@@ -465,86 +471,86 @@ model Opportunity {
 /// ============================================
 
 model Invoice {
-  id            String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  number        String
-  title         String
-  clientId      String?
-  status        String   @default("draft")
-  subtotal      Decimal  @default(0)
-  tax           Decimal  @default(0)
-  total         Decimal  @default(0)
-  currency      String   @default("USD")
-  dueDate       DateTime?
-  notes         String?
-  deletedAt     DateTime?
+  number         String
+  title          String
+  clientId       String?
+  status         String    @default("draft")
+  subtotal       Decimal   @default(0)
+  tax            Decimal   @default(0)
+  total          Decimal   @default(0)
+  currency       String    @default("USD")
+  dueDate        DateTime?
+  notes          String?
+  deletedAt      DateTime?
   idempotencyKey String?
-  createdBy     String?
-  updatedBy     String?
-  createdAt     DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  client        Contact?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  items         InvoiceItem[]
-  payments      Payment[]
-  creator       User?   @relation("CreatedInvoice", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater       User?   @relation("UpdatedInvoice", fields: [updatedBy], references: [id], onDelete: SetNull)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Contact?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items        InvoiceItem[]
+  payments     Payment[]
+  creator      User?         @relation("CreatedInvoice", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?         @relation("UpdatedInvoice", fields: [updatedBy], references: [id], onDelete: SetNull)
 }
 
 model InvoiceItem {
-  id           String   @id @default(cuid())
-  invoiceId    String
-  description  String
-  quantity     Decimal
-  unitPrice    Decimal
-  taxRate      Decimal  @default(0)
-  amount       Decimal
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  taxRate     Decimal  @default(0)
+  amount      Decimal
+  createdAt   DateTime @default(now())
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
-  id           String   @id @default(cuid())
-  invoiceId    String
-  amount       Decimal
-  method       String   @default("bank_transfer")
-  reference    String?
-  paidAt       DateTime
-  recordedBy   String?
+  id             String   @id @default(cuid())
+  invoiceId      String
+  amount         Decimal
+  method         String   @default("bank_transfer")
+  reference      String?
+  paidAt         DateTime
+  recordedBy     String?
   idempotencyKey String?
-  createdAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
 
-  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  recorder     User?   @relation("CreatedPayment", fields: [recordedBy], references: [id], onDelete: SetNull)
+  invoice  Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recorder User?   @relation("CreatedPayment", fields: [recordedBy], references: [id], onDelete: SetNull)
 }
 
 model Estimate {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  number      String
-  clientId    String
-  status      String   @default("draft")
-  total       Decimal  @default(0)
-  currency    String   @default("USD")
-  validUntil  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  number         String
+  clientId       String
+  status         String    @default("draft")
+  total          Decimal   @default(0)
+  currency       String    @default("USD")
+  validUntil     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model ExpenseItem {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  projectId   String?
-  category    String
-  amount      Decimal
-  expenseDate DateTime
-  receiptUrl  String?
-  billable    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  projectId      String?
+  category       String
+  amount         Decimal
+  expenseDate    DateTime
+  receiptUrl     String?
+  billable       Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
@@ -554,129 +560,130 @@ model ExpenseItem {
 /// ============================================
 
 model Project {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  clientId    String?
-  name        String
-  description String?
-  status      String   @default("active")
-  budget      Decimal?
-  startDate   DateTime?
-  endDate     DateTime?
-  templateId  String?
-  deletedAt   DateTime?
-  createdBy   String?
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  clientId       String?
+  name           String
+  description    String?
+  status         String    @default("active")
+  budget         Decimal?
+  startDate      DateTime?
+  endDate        DateTime?
+  templateId     String?
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  client      Contact?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  creator     User?      @relation("CreatedProject", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     User?      @relation("UpdatedProject", fields: [updatedBy], references: [id], onDelete: SetNull)
-  template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  tasks       Task[]
-  milestones  Milestone[]
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Contact?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  creator      User?             @relation("CreatedProject", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?             @relation("UpdatedProject", fields: [updatedBy], references: [id], onDelete: SetNull)
+  template     ProjectTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  tasks        Task[]
+  milestones   Milestone[]
   changeOrders ChangeOrder[]
-  files       ProjectFile[]
-  approvals   ProjectApproval[]
+  files        ProjectFile[]
+  approvals    ProjectApproval[]
+  contracts    Contract[]
 }
 
 model ProjectTemplate {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   projects     Project[]
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  projectId   String
-  assigneeId  String?
-  milestoneId String?
-  title       String
-  status      String   @default("todo")
-  priority    String   @default("medium")
-  dueDate     DateTime?
+  projectId      String
+  assigneeId     String?
+  milestoneId    String?
+  title          String
+  status         String    @default("todo")
+  priority       String    @default("medium")
+  dueDate        DateTime?
   estimatedHours Decimal?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee       User?         @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  milestone      Milestone?    @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  timeEntries    TimeEntry[]
-  projectFiles   ProjectFile[]
-  comments       TaskComment[]
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee     User?         @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  milestone    Milestone?    @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  timeEntries  TimeEntry[]
+  projectFiles ProjectFile[]
+  comments     TaskComment[]
 }
 
 model Milestone {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  projectId   String
-  name        String
-  dueDate     DateTime?
-  status      String   @default("pending")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  projectId      String
+  name           String
+  dueDate        DateTime?
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks       Task[]
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
 }
 
 model TimeEntry {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  userId      String
-  taskId      String?
-  date        DateTime
-  hours       Decimal
-  description String?
-  billable    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  userId         String
+  taskId         String?
+  date           DateTime
+  hours          Decimal
+  description    String?
+  billable       Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task        Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task         Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
 }
 
 model ProjectFile {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  projectId   String
-  taskId      String?
-  fileAssetId String
-  createdAt   DateTime @default(now())
+  projectId      String
+  taskId         String?
+  fileAssetId    String
+  createdAt      DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  fileAsset   FileAsset @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
-  task        Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId      String?
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileAsset    FileAsset    @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+  task         Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId       String?
 }
 
 model ChangeOrder {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  projectId   String
-  description String
-  amount      Decimal
-  status      String   @default("pending")
-  approvedBy  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  projectId      String
+  description    String
+  amount         Decimal
+  status         String   @default("pending")
+  approvedBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 /// ============================================
@@ -684,75 +691,76 @@ model ChangeOrder {
 /// ============================================
 
 model WorkflowRule {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  name        String
-  trigger     String
-  conditions  Json     @default("{}")
-  actions     Json     @default("{}")
-  enabled     Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  name           String
+  trigger        String
+  conditions     Json     @default("{}")
+  actions        Json     @default("{}")
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model WorkflowExecution {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  ruleId      String
-  recordType  String
-  recordId    String
-  status      String   @default("pending")
-  resultLog   Json?
-  createdAt   DateTime @default(now())
+  ruleId         String
+  recordType     String
+  recordId       String
+  status         String   @default("pending")
+  resultLog      Json?
+  createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  userId      String
-  type        String
-  channel     String
-  read        Boolean  @default(false)
-  payload     Json?
-  sentAt      DateTime?
+  userId         String
+  type           String
+  channel        String
+  read           Boolean   @default(false)
+  payload        Json?
+  sentAt         DateTime?
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 /// Documents — Proposals & Quotations (Phase 2.1)
 
 model Proposal {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  number      String
-  opportunityId String?
-  contactId   String?
-  title       String
-  status      String   @default("draft")
-  subtotal    Decimal  @default(0)
-  tax         Decimal  @default(0)
-  total       Decimal  @default(0)
-  currency    String   @default("USD")
-  validUntil  DateTime?
-  notes       String?
-  deletedAt   DateTime?
-  createdBy   String?
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  number         String
+  opportunityId  String?
+  contactId      String?
+  title          String
+  status         String    @default("draft")
+  subtotal       Decimal   @default(0)
+  tax            Decimal   @default(0)
+  total          Decimal   @default(0)
+  currency       String    @default("USD")
+  validUntil     DateTime?
+  notes          String?
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  opportunity Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  items       ProposalLineItem[]
-  versions    ProposalVersion[]
-  creator     User?          @relation("CreatedProposal", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     User?          @relation("UpdatedProposal", fields: [updatedBy], references: [id], onDelete: SetNull)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact      Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  items        ProposalLineItem[]
+  versions     ProposalVersion[]
+  creator      User?              @relation("CreatedProposal", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?              @relation("UpdatedProposal", fields: [updatedBy], references: [id], onDelete: SetNull)
+  contracts    Contract[]
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -769,37 +777,37 @@ model ProposalLineItem {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 
-  proposal    Proposal     @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   @@index([proposalId, sortOrder])
 }
 
 model Quotation {
-  id          String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
-  number      String
-  opportunityId String?
-  contactId   String?
-  title       String
-  status      String   @default("draft")
-  subtotal    Decimal  @default(0)
-  tax         Decimal  @default(0)
-  total       Decimal  @default(0)
-  currency    String   @default("USD")
-  validUntil  DateTime?
-  notes       String?
-  deletedAt   DateTime?
-  createdBy   String?
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  number         String
+  opportunityId  String?
+  contactId      String?
+  title          String
+  status         String    @default("draft")
+  subtotal       Decimal   @default(0)
+  tax            Decimal   @default(0)
+  total          Decimal   @default(0)
+  currency       String    @default("USD")
+  validUntil     DateTime?
+  notes          String?
+  deletedAt      DateTime?
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  opportunity Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  contact     Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  items       QuotationLineItem[]
-  creator     User?          @relation("CreatedQuotation", fields: [createdBy], references: [id], onDelete: SetNull)
-  updater     User?          @relation("UpdatedQuotation", fields: [updatedBy], references: [id], onDelete: SetNull)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity?        @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact      Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  items        QuotationLineItem[]
+  creator      User?               @relation("CreatedQuotation", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?               @relation("UpdatedQuotation", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -816,160 +824,162 @@ model QuotationLineItem {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 
-  quotation   Quotation    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
   @@index([quotationId, sortOrder])
 }
 
 model Contract {
-  id            String   @id @default(cuid())
-  organizationId String
-  proposalId    String?
-  projectId     String?
-  title         String
-  status        String   @default("draft")
+  id                 String    @id @default(cuid())
+  organizationId     String
+  proposalId         String?
+  projectId          String?
+  title              String
+  status             String    @default("draft")
   signatureReference String?
-  signedAt      DateTime?
-  signedBy      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  signedAt           DateTime?
+  signedBy           String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  proposal     Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
-  project      Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  signer       User?       @relation(fields: [signedBy], references: [id], onDelete: SetNull)
+  proposal     Proposal?    @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  signer       User?        @relation(fields: [signedBy], references: [id], onDelete: SetNull)
+  signatures   Signature[]
 }
 
 model Document {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  title       String
-  type        String
-  folder      String?
-  visibility  String   @default("private")
-  fileAssetId String?
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  title          String
+  type           String
+  folder         String?
+  visibility     String   @default("private")
+  fileAssetId    String?
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  fileAsset   FileAsset?  @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
-  versions    DocumentVersion[]
-  links       DocumentLink[]
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fileAsset    FileAsset?        @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
+  versions     DocumentVersion[]
+  links        DocumentLink[]
+  signatures   Signature[]
 }
 
 model ProposalVersion {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  proposalId  String
-  version     Int
-  title       String
-  status      String
-  subtotal    Decimal  @default(0)
-  tax         Decimal  @default(0)
-  total       Decimal  @default(0)
-  currency    String   @default("USD")
-  notes       String?
-  snapshot    Json
-  createdAt   DateTime @default(now())
-  createdBy   String?
+  proposalId     String
+  version        Int
+  title          String
+  status         String
+  subtotal       Decimal  @default(0)
+  tax            Decimal  @default(0)
+  total          Decimal  @default(0)
+  currency       String   @default("USD")
+  notes          String?
+  snapshot       Json
+  createdAt      DateTime @default(now())
+  createdBy      String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  proposal    Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  creator     User?       @relation("CreatedProposalVersion", fields: [createdBy], references: [id], onDelete: SetNull)
+  proposal     Proposal     @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("CreatedProposalVersion", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([proposalId, version])
 }
 
 model DocumentVersion {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  documentId  String
-  version     Int
-  title       String
-  fileAssetId String?
-  snapshot    Json?
-  createdAt   DateTime @default(now())
-  createdBy   String?
+  documentId     String
+  version        Int
+  title          String
+  fileAssetId    String?
+  snapshot       Json?
+  createdAt      DateTime @default(now())
+  createdBy      String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  document    Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  fileAsset   FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
-  creator     User?      @relation("CreatedDocumentVersion", fields: [createdBy], references: [id], onDelete: SetNull)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  fileAsset    FileAsset?   @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
+  creator      User?        @relation("CreatedDocumentVersion", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([documentId, version])
 }
 
 model DocumentLink {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  documentId  String
-  token       String   @unique
-  expiresAt   DateTime
-  accessCount Int      @default(0)
-  maxAccess   Int?
-  createdAt   DateTime @default(now())
-  createdBy   String?
+  documentId     String
+  token          String   @unique
+  expiresAt      DateTime
+  accessCount    Int      @default(0)
+  maxAccess      Int?
+  createdAt      DateTime @default(now())
+  createdBy      String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  creator     User?     @relation("CreatedDocumentLink", fields: [createdBy], references: [id], onDelete: SetNull)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("CreatedDocumentLink", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([token])
   @@index([expiresAt])
 }
 
 model Signature {
-  id             String   @id @default(cuid())
-  organizationId String
-  documentId     String?
-  contractId     String?
-  signerName     String
-  signerEmail    String
-  signedAt       DateTime @default(now())
-  signatureMethod String  @default("audit_trail") // audit_trail | esign_provider
+  id                 String   @id @default(cuid())
+  organizationId     String
+  documentId         String?
+  contractId         String?
+  signerName         String
+  signerEmail        String
+  signedAt           DateTime @default(now())
+  signatureMethod    String   @default("audit_trail") // audit_trail | esign_provider
   signatureReference String?
-  ipAddress      String?
-  userAgent      String?
-  createdAt      DateTime @default(now())
+  ipAddress          String?
+  userAgent          String?
+  createdAt          DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  document     Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  contract     Contract?  @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  document     Document?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  contract     Contract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
 }
 
 model ProjectApproval {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
   projectId      String
   contactId      String?
-  status         String   @default("pending") // pending, approved, changes_requested
+  status         String    @default("pending") // pending, approved, changes_requested
   feedback       String?
   approvedAt     DateTime?
   createdBy      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  contact        Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  creator        User?     @relation("CreatedProjectApproval", fields: [createdBy], references: [id], onDelete: SetNull)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  creator      User?        @relation("CreatedProjectApproval", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([projectId, status])
 }
 
 model TaskComment {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  taskId      String
-  userId      String
-  comment     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  taskId         String
+  userId         String
+  comment        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId, createdAt])
 }

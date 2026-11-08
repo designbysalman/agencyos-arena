@@ -78,5 +78,9 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.1.0"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.10.1": true,
+    "prisma@7.10.1": true
   }
 }
