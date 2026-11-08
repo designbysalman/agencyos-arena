@@ -20,12 +20,15 @@ function errorResponse(message: string, status: number, issues?: unknown[]) {
   return NextResponse.json(body, { status });
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ type: string; id: string }> }
-) {
+export async function GET(request: Request) {
   try {
-    const { type, id } = await params;
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    const id = searchParams.get('id');
+
+    if (!type || !id) {
+      return errorResponse('type and id are required', 400);
+    }
 
     if (type === 'proposal') {
       const data = await listProposalVersions(id);

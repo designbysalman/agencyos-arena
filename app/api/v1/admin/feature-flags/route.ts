@@ -28,11 +28,14 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: Request) {
   try {
-    const { id } = await params;
     const body = await request.json();
-    const flag = await updateFeatureFlag(id, body);
+    const { id, ...updateData } = body;
+    if (!id || typeof id !== 'string') {
+      return errorResponse('feature flag id is required', 400);
+    }
+    const flag = await updateFeatureFlag(id, updateData);
     return NextResponse.json(flag);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;

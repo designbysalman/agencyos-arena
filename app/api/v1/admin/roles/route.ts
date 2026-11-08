@@ -37,11 +37,14 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: Request) {
   try {
-    const { id } = await params;
     const body = await request.json();
-    const role = await updateRole(id, body);
+    const { id, ...updateData } = body;
+    if (!id || typeof id !== 'string') {
+      return errorResponse('role id is required', 400);
+    }
+    const role = await updateRole(id, updateData);
     return NextResponse.json(role);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;

@@ -28,11 +28,14 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: Request) {
   try {
-    const { id } = await params;
     const body = await request.json();
-    const user = await updateUser(id, body);
+    const { id, ...updateData } = body;
+    if (!id || typeof id !== 'string') {
+      return errorResponse('user id is required', 400);
+    }
+    const user = await updateUser(id, updateData);
     return NextResponse.json(user);
   } catch (err) {
     const statusCode = (err as Error & { statusCode?: number }).statusCode ?? 500;
