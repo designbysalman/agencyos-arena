@@ -18,6 +18,13 @@ interface ContactDetailPageProps {
 export default function ContactDetailPage({ params }: ContactDetailPageProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const toastRef = React.useRef(toast);
+  // Keep the ref in sync with the latest toast function so the data-fetching
+  // effect can call it without depending on `toast` directly (which would
+  // cause an infinite re-fetch loop).
+  React.useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
   const { id } = params;
   const [contact, setContact] = React.useState<{
     id: string;
@@ -55,7 +62,7 @@ export default function ContactDetailPage({ params }: ContactDetailPageProps) {
             router.push('/login');
             return;
           }
-          toast({ title: 'Error', description: 'Failed to load contact' });
+          toastRef.current({ title: 'Error', description: 'Failed to load contact' });
           return;
         }
         const data = await res.json();
@@ -63,7 +70,7 @@ export default function ContactDetailPage({ params }: ContactDetailPageProps) {
         setContact(data);
       } catch {
         if (!mounted) return;
-        toast({ title: 'Error', description: 'Failed to load contact' });
+        toastRef.current({ title: 'Error', description: 'Failed to load contact' });
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -71,7 +78,7 @@ export default function ContactDetailPage({ params }: ContactDetailPageProps) {
     return () => {
       mounted = false;
     };
-  }, [id, router, toast]);
+  }, [id, router]);
 
   async function handleDelete() {
     if (!window.confirm('Are you sure you want to delete this contact?')) {

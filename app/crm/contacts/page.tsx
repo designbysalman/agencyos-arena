@@ -33,6 +33,13 @@ interface Contact {
 export default function ContactsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const toastRef = React.useRef(toast);
+  // Keep the ref in sync with the latest toast function so the data-fetching
+  // effect can call it without depending on `toast` directly (which would
+  // cause an infinite re-fetch loop).
+  React.useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
   const [contacts, setContacts] = React.useState<Contact[]>([]);
   const [total, setTotal] = React.useState(0);
   const [totalPages, setTotalPages] = React.useState(0);
@@ -62,7 +69,7 @@ export default function ContactsPage() {
         );
         if (!mounted) return;
         if (!res.ok) {
-          toast({ title: 'Error', description: 'Failed to load contacts' });
+          toastRef.current({ title: 'Error', description: 'Failed to load contacts' });
           return;
         }
         const data = await res.json();
@@ -73,7 +80,7 @@ export default function ContactsPage() {
         setPage(data.page ?? pageNum);
       } catch {
         if (!mounted) return;
-        toast({ title: 'Error', description: 'Failed to load contacts' });
+        toastRef.current({ title: 'Error', description: 'Failed to load contacts' });
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -81,11 +88,6 @@ export default function ContactsPage() {
     return () => {
       mounted = false;
     };
-    // `toast` is intentionally excluded: it is only used for side-effect
-    // notifications (error toasts), not for controlling fetch behavior. Including
-    // it would re-run the effect on every render because `toast` is not
-    // referentially stable across renders, causing an infinite fetch loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNum, pageSizeNum, searchVal]);
 
   async function handleDelete(id: string) {
