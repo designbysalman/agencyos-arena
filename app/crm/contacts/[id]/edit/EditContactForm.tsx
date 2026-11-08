@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/toast';
 
 interface EditContactFormProps {
   contact: {
@@ -29,6 +30,7 @@ interface EditContactFormProps {
 
 export function EditContactForm({ contact }: EditContactFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [accounts, setAccounts] = React.useState<Array<{ id: string; name: string }>>([]);
@@ -89,6 +91,7 @@ export function EditContactForm({ contact }: EditContactFormProps) {
 
       router.push(`/crm/contacts/${contact.id}`);
       router.refresh();
+      toast({ title: 'Saved', description: 'Contact has been updated' });
     } catch {
       setError('Unable to update contact');
     } finally {
@@ -238,13 +241,24 @@ export function EditContactForm({ contact }: EditContactFormProps) {
                     .then((res) => {
                       if (!res.ok) {
                         setError('Unable to archive contact');
+                        toast({
+                          title: 'Delete failed',
+                          description: 'Unable to delete contact',
+                          variant: 'destructive',
+                        });
                         return;
                       }
+                      toast({ title: 'Deleted', description: 'Contact has been deleted' });
                       router.push('/crm/contacts');
                       router.refresh();
                     })
                     .catch(() => {
                       setError('Unable to archive contact');
+                      toast({
+                        title: 'Delete failed',
+                        description: 'Unable to delete contact',
+                        variant: 'destructive',
+                      });
                     });
                 }
               }}

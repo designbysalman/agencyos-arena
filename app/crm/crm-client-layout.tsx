@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { TopNav } from '@/components/layout/top-nav';
 import { useTheme } from '@/components/providers/theme-provider';
 import { classNames } from '@/lib/utils';
+import { Toaster } from '@/components/ui/toaster';
 
 interface AuthUser {
   id: string;
@@ -62,6 +63,7 @@ export function CrmClientLayout({ children, user }: CrmClientLayoutProps) {
           aria-hidden="true"
         />
       )}
+      <Toaster />
     </div>
   );
 }
