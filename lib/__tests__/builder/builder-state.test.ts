@@ -15,7 +15,6 @@ import {
   parseDecimal,
   formatMoney,
   type LineItem,
-  type DocumentInfo,
 } from '@/components/builder/use-builder-state';
 
 describe('Money math utilities', () => {

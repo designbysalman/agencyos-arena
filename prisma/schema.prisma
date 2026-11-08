@@ -51,6 +51,11 @@ model User {
   projectFiles   ProjectFile[]
   tasks          Task[]
   notifications  Notification[]
+  createdApprovals ProjectApproval[] @relation("CreatedProjectApproval")
+  taskComments   TaskComment[]
+  proposalVersions ProposalVersion[] @relation("CreatedProposalVersion")
+  documentVersions DocumentVersion[] @relation("CreatedDocumentVersion")
+  documentLinks  DocumentLink[] @relation("CreatedDocumentLink")
 }
 
 model Session {
@@ -140,6 +145,8 @@ model Organization {
   featureFlags   FeatureFlag[]
   fileAssets     FileAsset[]
   webhookEvents  WebhookEvent[]
+  projectApprovals ProjectApproval[]
+  taskComments   TaskComment[]
 }
 
 model OrganizationAccount {
@@ -347,6 +354,7 @@ model Contact {
   projects      Project[]
   creator       User?          @relation("CreatedContact", fields: [createdBy], references: [id], onDelete: SetNull)
   updater       User?          @relation("UpdatedContact", fields: [updatedBy], references: [id], onDelete: SetNull)
+  projectApprovals ProjectApproval[]
 }
 
 model AccountContact {
@@ -566,6 +574,7 @@ model Project {
   client      Contact?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   creator     User?      @relation("CreatedProject", fields: [createdBy], references: [id], onDelete: SetNull)
   updater     User?      @relation("UpdatedProject", fields: [updatedBy], references: [id], onDelete: SetNull)
+  template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   tasks       Task[]
   milestones  Milestone[]
   changeOrders ChangeOrder[]
@@ -582,6 +591,7 @@ model ProjectTemplate {
   updatedAt   DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projects     Project[]
 }
 
 model Task {
@@ -866,7 +876,7 @@ model ProposalVersion {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   proposal    Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  creator     User?       @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  creator     User?       @relation("CreatedProposalVersion", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([proposalId, version])
 }
@@ -885,7 +895,7 @@ model DocumentVersion {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   document    Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   fileAsset   FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
-  creator     User?      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  creator     User?      @relation("CreatedDocumentVersion", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([documentId, version])
 }
@@ -903,7 +913,7 @@ model DocumentLink {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  creator     User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  creator     User?     @relation("CreatedDocumentLink", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([token])
   @@index([expiresAt])
@@ -943,7 +953,7 @@ model ProjectApproval {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   contact        Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  creator        User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  creator        User?     @relation("CreatedProjectApproval", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([projectId, status])
 }
