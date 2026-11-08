@@ -39,7 +39,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       const res = await fetch(`/api/v1/admin/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: role || undefined, status: status || undefined }),
+        body: JSON.stringify({ id, role: role || undefined, status: status || undefined }),
       });
 
       if (!res.ok) {

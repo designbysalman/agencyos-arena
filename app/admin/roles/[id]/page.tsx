@@ -53,6 +53,7 @@ export default function EditRolePage({ params }: { params: Promise<{ id: string 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           name: name || undefined,
           description: description || undefined,
           permissionCodes,

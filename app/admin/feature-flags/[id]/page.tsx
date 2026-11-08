@@ -42,6 +42,7 @@ export default function EditFeatureFlagPage({ params }: { params: Promise<{ id: 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           enabled,
           description: description || undefined,
         }),
