@@ -15,7 +15,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: agencyos
-      POSTGRES_PASSWORD: agencyos_dev_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ci_arena_test_2026}
       POSTGRES_DB: agencyos
     ports:
       - "${POSTGRES_HOST_PORT:-5433}:${POSTGRES_INTERNAL_PORT:-5432}"
@@ -35,9 +35,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://agencyos:agencyos_dev_password@postgres:${POSTGRES_INTERNAL_PORT:-5432}/agencyos?schema=public"
-      NEXTAUTH_SECRET: "replace-with-a-strong-secret-in-production"
-      BETTER_AUTH_SECRET: "replace-with-a-strong-secret-in-production"
+      DATABASE_URL: "postgresql://agencyos:${POSTGRES_PASSWORD:-ci_arena_test_2026}@postgres:${POSTGRES_INTERNAL_PORT:-5432}/agencyos?schema=public"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-ci_nextauth_secret_arena_2026}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-ci_better_auth_secret_arena_2026}
       BETTER_AUTH_URL: "http://localhost:${APP_PORT:-3001}"
       NODE_ENV: "development"
       PORT: "${APP_PORT:-3001}"

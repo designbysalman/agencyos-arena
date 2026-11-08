@@ -26,7 +26,7 @@ const describeIfDb = canRunTests ? describe : describe.skip;
 const describeIfHttp = describe;
 
 const TEST_EMAIL_SUFFIX = '@session-test.invalid';
-const TEST_PASSWORD = 'SessionTest123!';
+const TEST_PASSWORD = process.env.TEST_PASSWORD ?? 'test_arena_password_2026';
 
 /** Register a user via HTTP and sign in, returning the Better Auth session token */
 async function createAuthenticatedUser(email: string, name: string) {
@@ -129,7 +129,7 @@ describeIfHttp('Authentication session HTTP (real Next.js server)', () => {
       await new Promise((r) => setTimeout(r, 2000));
     }
     throw new Error(
-      `Next.js server at ${SERVER_URL} did not become ready within 60 seconds. Last error: ${lastError}`,
+      `Next.js server at ${SERVER_URL} did not become ready within 60 seconds. Last error: ${lastError}`
     );
   });
 

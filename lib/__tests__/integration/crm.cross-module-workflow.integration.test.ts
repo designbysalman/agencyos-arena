@@ -23,14 +23,10 @@ const SERVER_URL = 'http://localhost:3000';
 const describeIfDb = canRunTests ? describe : describe.skip;
 
 const TEST_EMAIL_SUFFIX = '@crm-workflow-test.invalid';
-const TEST_PASSWORD = 'TestPassword123!';
+const TEST_PASSWORD = process.env.TEST_PASSWORD ?? 'test_arena_password_2026';
 
 /** Register, sign in, and bootstrap an org for a test user. Returns session token, user, orgId. */
-async function createAuthenticatedUserWithOrg(
-  email: string,
-  name: string,
-  orgName: string
-) {
+async function createAuthenticatedUserWithOrg(email: string, name: string, orgName: string) {
   const signUpRes = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -320,12 +316,15 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       expect(accountDetail.contactCount).toBeGreaterThanOrEqual(1);
 
       // 9. Verify opportunity shows linked lead
-      const oppDetailRes = await fetch(`${SERVER_URL}/api/v1/crm/opportunities/${convertBody.opportunity.id}`, {
-        headers: {
-          Cookie: `better-auth.session_token=${testSessionToken}`,
-          Accept: 'application/json',
-        },
-      });
+      const oppDetailRes = await fetch(
+        `${SERVER_URL}/api/v1/crm/opportunities/${convertBody.opportunity.id}`,
+        {
+          headers: {
+            Cookie: `better-auth.session_token=${testSessionToken}`,
+            Accept: 'application/json',
+          },
+        }
+      );
       expect(oppDetailRes.status).toBe(200);
       const oppDetail = await oppDetailRes.json();
       expect(oppDetail.lead).toBeDefined();
@@ -420,25 +419,20 @@ describeIfDb('CRM Cross-Module Workflow integration (real PostgreSQL)', () => {
       expect(foreignSignIn.status).toBe(200);
 
       const foreignSetCookie = foreignSignIn.headers.get('set-cookie') || '';
-      const foreignCookieMatch = foreignSetCookie.match(
-        /better-auth.session_token=([^;]+)/
-      );
+      const foreignCookieMatch = foreignSetCookie.match(/better-auth.session_token=([^;]+)/);
       const foreignToken = foreignCookieMatch ? foreignCookieMatch[1] : null;
       expect(foreignToken).toBeTruthy();
 
       // Bootstrap the foreign org
-      const foreignBootstrap = await fetch(
-        `${SERVER_URL}/api/auth/bootstrap-organization`,
-        {
-          method: 'POST',
-          headers: {
-            Cookie: `better-auth.session_token=${foreignToken}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({ organizationName: 'Foreign Workflow Org' }),
-        }
-      );
+      const foreignBootstrap = await fetch(`${SERVER_URL}/api/auth/bootstrap-organization`, {
+        method: 'POST',
+        headers: {
+          Cookie: `better-auth.session_token=${foreignToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ organizationName: 'Foreign Workflow Org' }),
+      });
       expect(foreignBootstrap.status).toBe(200);
 
       // Capture foreign user/org for cleanup
