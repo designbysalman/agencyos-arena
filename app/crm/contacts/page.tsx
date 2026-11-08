@@ -81,7 +81,12 @@ export default function ContactsPage() {
     return () => {
       mounted = false;
     };
-  }, [pageNum, pageSizeNum, searchVal, toast]);
+    // `toast` is intentionally excluded: it is only used for side-effect
+    // notifications (error toasts), not for controlling fetch behavior. Including
+    // it would re-run the effect on every render because `toast` is not
+    // referentially stable across renders, causing an infinite fetch loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum, pageSizeNum, searchVal]);
 
   async function handleDelete(id: string) {
     if (!window.confirm('Are you sure you want to delete this contact?')) {
