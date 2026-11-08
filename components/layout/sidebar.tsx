@@ -23,6 +23,9 @@ import {
   Link as LinkIcon,
   Clock,
   Bell,
+  Shield,
+  ToggleRight,
+  Activity,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -53,6 +56,12 @@ const navigation = [
   { name: 'Workflows', href: '/automation/rules', icon: Mail },
   { name: 'Notifications', href: '/automation/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Admin', href: '/admin/audit-logs', icon: Settings },
+  { name: 'Audit Log', href: '/admin/audit-logs', icon: FileText },
+  { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Roles', href: '/admin/roles', icon: Shield },
+  { name: 'Feature Flags', href: '/admin/feature-flags', icon: ToggleRight },
+  { name: 'Health', href: '/admin/health', icon: Activity },
   { name: 'Documents', href: '/documents/contracts', icon: File },
   { name: 'Contracts', href: '/documents/contracts', icon: FileText },
   { name: 'Templates', href: '/documents/templates', icon: File },

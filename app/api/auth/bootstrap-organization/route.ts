@@ -82,6 +82,15 @@ const CRM_PERMISSION_CODES = [
   'workflow.read',
   'workflow.update',
   'workflow.delete',
+  'audit_log.read',
+  'user.read',
+  'user.update',
+  'user.delete',
+  'role.read',
+  'role.update',
+  'role.delete',
+  'feature_flag.read',
+  'feature_flag.update',
 ];
 
 /** Validate session and return the authenticated user */
