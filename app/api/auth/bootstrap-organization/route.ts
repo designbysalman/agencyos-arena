@@ -77,6 +77,11 @@ const CRM_PERMISSION_CODES = [
   'expense.delete',
   'tax_settings.read',
   'tax_settings.update',
+  'notification.read',
+  'notification.update',
+  'workflow.read',
+  'workflow.update',
+  'workflow.delete',
 ];
 
 /** Validate session and return the authenticated user */
