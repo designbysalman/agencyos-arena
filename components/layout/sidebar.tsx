@@ -21,6 +21,7 @@ import {
   X,
   File,
   Link as LinkIcon,
+  Clock,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,9 @@ const navigation = [
   { name: 'Quotations', href: '/sales/quotations', icon: Receipt },
   { name: 'Invoices', href: '/finance/invoices', icon: CreditCard },
   { name: 'Projects', href: '/projects', icon: Briefcase },
+  { name: 'Templates', href: '/projects/templates', icon: File },
+  { name: 'Change Orders', href: '/projects/change-orders', icon: LinkIcon },
+  { name: 'Time Entries', href: '/projects/time-entries', icon: Clock },
   { name: 'Automation', href: '/automation/workflows', icon: Mail },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Documents', href: '/documents/contracts', icon: File },
